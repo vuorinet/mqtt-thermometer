@@ -65,7 +65,8 @@ paho.mqtt.subscribe.callback(
     [
         ("mokki/tupa/temperature", 1),
         ("mokki/kamari/temperature", 1),
+        ("mokki/terassi/temperature", 1),
         ("mokki/sauna/temperature", 1),
     ],
-    hostname="192.168.1.113",
+    hostname="localhost",
 )
