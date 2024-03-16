@@ -35,12 +35,13 @@ async def get_db() -> AsyncGenerator[Connection, None]:
 async def get_temperatures(
     request: Request, db: Annotated[Connection, Depends(get_db)]
 ):  # noqa: ARG001
-    print(database.get_temperatures(db))
+    temperatures = database.get_temperatures(db, source="mokki/sauna/temperature")
+
     return {
-        "labels": [1, 2, 3],
+        "labels": [temperature[1] for temperature in temperatures],
         "datasets": [
             {
-                "data": [1, 2, 3],
+                "data": [temperature[2] for temperature in temperatures],
                 "label": "Temperature",
                 "borderColor": "#3e95cd",
                 "backgroundColor": "#7bb6dd",

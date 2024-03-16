@@ -50,10 +50,12 @@ def save_temperature(
     connection.commit()
 
 
-def get_temperatures(connection: Connection):
+def get_temperatures(connection: Connection, source: str):
     cursor = connection.cursor()
     cursor.execute(
-        "SELECT source, timestamp, temperature FROM temperature ORDER BY timestamp"
+        "SELECT source, timestamp, temperature FROM temperature "
+        f"WHERE source='{source}' "
+        "ORDER BY timestamp"
     )
     return cursor.fetchall()
 
