@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Temperatures</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+
+</head>
+
+<body>
+    <h1>{{ greeting }}</h1>
+    <button hx-get="/customers" hx-swap="innerHTML" hx-target="#customers_list">
+        Load Data
+    </button>
+    <div id="customers_list"></div>
+
+    <div hx-trigger="load" hx-get="/temperatures" hx-swap="none" hx-ext="Chartjs"
+        style="position:relative; height:90vh; width:80vw">
+        <canvas id="chart"></canvas>
+    </div>
+
+
+    <script>
+
+
+        const chart = new Chart(
+            document.getElementById('chart'),
+            {
+                type: 'line',
+                data: {},
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            }
+        );
+
+        htmx.defineExtension('Chartjs', {
+            transformResponse: function (text, xhr, elt) {
+                var data = JSON.parse(text);
+                var ctx = document.getElementById('chart').getContext('2d');
+                chart.data = data;
+                chart.update();
+                return "";
+            }
+        });
+
+    </script>
+
+
+
+</body>
+
+</html>
