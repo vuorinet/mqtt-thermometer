@@ -1,4 +1,5 @@
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from pathlib import Path
 from typing import Annotated, AsyncGenerator
 from fastapi import FastAPI, Request, Depends
@@ -32,21 +33,37 @@ async def get_db() -> AsyncGenerator[Connection, None]:
         db.close()
 
 
+def _get_empty_temperatures(
+    since: datetime, until: datetime
+) -> dict[datetime, Decimal | None]:
+    temperatures = {}
+    timestamp = since
+    while timestamp <= until:
+        temperatures[timestamp] = None
+        timestamp += timedelta(minutes=1)
+    return temperatures
+
+
 @app.get("/temperatures")
 async def get_temperatures(
-    request: Request, db: Annotated[Connection, Depends(get_db)]
+    request: Request, database_connection: Annotated[Connection, Depends(get_db)]
 ):  # noqa: ARG001
-    temperatures = database.get_temperatures(
-        db,
+    until = datetime.now(tz=UTC).replace(second=0, microsecond=0)
+    since = until - timedelta(hours=6)
+    temperatures = _get_empty_temperatures(since=since, until=until)
+
+    for _, timestamp, temperature in database.get_temperatures(
+        database_connection,
         source="mokki/sauna/temperature",
-        since=datetime.now(tz=UTC) - timedelta(hours=24),
-    )
+        since=since,
+    ):
+        temperatures[timestamp] = temperature
 
     return {
-        "labels": [temperature[1] for temperature in temperatures],
+        "labels": list(temperatures.keys()),
         "datasets": [
             {
-                "data": [temperature[2] for temperature in temperatures],
+                "data": list(temperatures.values()),
                 "label": "Temperature",
                 "borderColor": "#3e95cd",
                 "backgroundColor": "#7bb6dd",
