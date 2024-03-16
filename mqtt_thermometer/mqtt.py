@@ -15,7 +15,6 @@ def on_message(client, userdata, message):
 
     temperature = Decimal(message.payload.decode())
     source = message.topic
-
     source_temperatures.setdefault(source, []).append(temperature)
     timestamp = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 
@@ -30,7 +29,7 @@ def on_message(client, userdata, message):
         database.save_temperature(
             connection, source, last_timestamp, average_temperature
         )
-    temperatures = []
+    source_temperatures = {}
     last_timestamp = timestamp
 
 
