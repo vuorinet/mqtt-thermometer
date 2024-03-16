@@ -1,3 +1,4 @@
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Annotated, AsyncGenerator
 from fastapi import FastAPI, Request, Depends
@@ -35,7 +36,11 @@ async def get_db() -> AsyncGenerator[Connection, None]:
 async def get_temperatures(
     request: Request, db: Annotated[Connection, Depends(get_db)]
 ):  # noqa: ARG001
-    temperatures = database.get_temperatures(db, source="mokki/sauna/temperature")
+    temperatures = database.get_temperatures(
+        db,
+        source="mokki/sauna/temperature",
+        since=datetime.now(tz=UTC) - timedelta(hours=24),
+    )
 
     return {
         "labels": [temperature[1] for temperature in temperatures],
