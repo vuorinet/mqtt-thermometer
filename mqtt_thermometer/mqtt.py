@@ -1,13 +1,28 @@
 from datetime import UTC, datetime
 from decimal import Decimal
-import paho.mqtt.subscribe
 from mqtt_thermometer import database
 
+import paho.mqtt.client as mqtt
 
 last_timestamp: datetime = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 source_temperatures: dict[str, list[Decimal]] = {}
 
 connection = None
+client = None
+
+
+def on_connect(client, userdata, flags, reason_code, properties):
+    if reason_code.is_failure:
+        print(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
+    else:
+        client.subscribe(
+            [
+                ("mokki/tupa/temperature", 1),
+                ("mokki/kamari/temperature", 1),
+                ("mokki/terassi/temperature", 1),
+                ("mokki/sauna/temperature", 1),
+            ]
+        )
 
 
 def on_message(client, userdata, message):
@@ -30,21 +45,28 @@ def on_message(client, userdata, message):
         database.save_temperature(
             connection, source, last_timestamp, average_temperature
         )
-    source_temperatures = {}
+    source_temperatures.clear()
     last_timestamp = timestamp
 
 
 def poll_mqtt_messages():
-    global connection
+    global connection, client
     connection = database.get_database_connection()
 
-    paho.mqtt.subscribe.callback(
-        on_message,
-        [
-            ("mokki/tupa/temperature", 1),
-            ("mokki/kamari/temperature", 1),
-            ("mokki/terassi/temperature", 1),
-            ("mokki/sauna/temperature", 1),
-        ],
-        hostname="192.168.1.113",
-    )
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client.on_connect = on_connect
+    client.on_message = on_message
+
+    client.connect("192.168.1.113", 1883)
+    client.loop_forever()
+
+    connection.close()
+
+
+def stop_polling():
+    assert client
+    client.disconnect()
+
+
+if __name__ == "__main__":
+    poll_mqtt_messages()

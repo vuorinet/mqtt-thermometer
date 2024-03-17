@@ -19,6 +19,7 @@ async def lifespan(app: FastAPI):
     thread = Thread(target=mqtt.poll_mqtt_messages)
     thread.start()
     yield
+    mqtt.stop_polling()
     thread.join()
 
 
