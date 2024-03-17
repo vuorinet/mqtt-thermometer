@@ -7,10 +7,11 @@ from mqtt_thermometer import database
 last_timestamp: datetime = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 source_temperatures: dict[str, list[Decimal]] = {}
 
-connection = database.get_database_connection()
+connection = None
 
 
 def on_message(client, userdata, message):
+    assert connection
     global last_timestamp, source_temperatures
 
     temperature = Decimal(message.payload.decode())
@@ -33,13 +34,17 @@ def on_message(client, userdata, message):
     last_timestamp = timestamp
 
 
-paho.mqtt.subscribe.callback(
-    on_message,
-    [
-        ("mokki/tupa/temperature", 1),
-        ("mokki/kamari/temperature", 1),
-        ("mokki/terassi/temperature", 1),
-        ("mokki/sauna/temperature", 1),
-    ],
-    hostname="192.168.1.113",
-)
+def poll_mqtt_messages():
+    global connection
+    connection = database.get_database_connection()
+
+    paho.mqtt.subscribe.callback(
+        on_message,
+        [
+            ("mokki/tupa/temperature", 1),
+            ("mokki/kamari/temperature", 1),
+            ("mokki/terassi/temperature", 1),
+            ("mokki/sauna/temperature", 1),
+        ],
+        hostname="192.168.1.113",
+    )

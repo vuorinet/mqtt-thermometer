@@ -1,6 +1,8 @@
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
+from threading import Thread
 from typing import Annotated, AsyncGenerator
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import HTMLResponse
@@ -8,8 +10,19 @@ from fastapi.templating import Jinja2Templates
 from fastapi_htmx import htmx, htmx_init
 from sqlite3 import Connection
 from mqtt_thermometer import database
+from mqtt_thermometer import mqtt
 
-app = FastAPI()
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    database.create_table()
+    thread = Thread(target=mqtt.poll_mqtt_messages)
+    thread.start()
+    yield
+    thread.join()
+
+
+app = FastAPI(lifespan=lifespan)
 htmx_init(templates=Jinja2Templates(directory=Path(__file__).parent / "templates"))
 
 
