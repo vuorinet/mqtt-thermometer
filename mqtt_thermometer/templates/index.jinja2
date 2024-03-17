@@ -15,7 +15,7 @@
     </button>
     <div id="customers_list"></div>
 
-    <div hx-trigger="load" hx-get="/temperatures" hx-swap="none" hx-ext="Chartjs"
+    <div hx-trigger="load, every 60s" hx-get="/temperatures" hx-swap="none" hx-ext="Chartjs"
         style="position:relative; height:90vh; width:80vw">
         <canvas id="chart"></canvas>
     </div>
@@ -39,6 +39,9 @@
                         point: {
                             radius: 0
                         }
+                    },
+                    animation: {
+                        duration: 0
                     }
                 }
             }

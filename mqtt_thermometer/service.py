@@ -48,16 +48,16 @@ def _get_empty_temperatures(
 async def get_temperatures(
     request: Request, database_connection: Annotated[Connection, Depends(get_db)]
 ):  # noqa: ARG001
-    until = datetime.now(tz=UTC).replace(second=0, microsecond=0)
-    since = until - timedelta(hours=6)
+    until = datetime.now(tz=UTC).replace(second=0, microsecond=0).astimezone()
+    since = until - timedelta(hours=24)
     temperatures = _get_empty_temperatures(since=since, until=until)
 
     for _, timestamp, temperature in database.get_temperatures(
         database_connection,
-        source="mokki/sauna/temperature",
+        source="mokki/tupa/temperature",
         since=since,
     ):
-        temperatures[timestamp] = temperature
+        temperatures[datetime.fromisoformat(timestamp).astimezone()] = temperature
 
     return {
         "labels": list(temperatures.keys()),
