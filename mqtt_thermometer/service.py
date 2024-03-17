@@ -30,13 +30,7 @@ htmx_init(templates=Jinja2Templates(directory=Path(__file__).parent / "templates
 @app.get("/", response_class=HTMLResponse)
 @htmx("index", "index")
 async def root_page(request: Request):
-    return {"greeting": "Hello World"}
-
-
-@app.get("/customers", response_class=HTMLResponse)
-@htmx("customers")
-async def get_customers(request: Request):
-    return {"customers": ["John Doe", "Jane Doe"]}
+    return {"greeting": "Temperatures at the cottage"}
 
 
 async def get_db() -> AsyncGenerator[Connection, None]:
@@ -64,24 +58,69 @@ async def get_temperatures(
 ):  # noqa: ARG001
     until = datetime.now(tz=UTC).replace(second=0, microsecond=0).astimezone()
     since = until - timedelta(hours=24)
-    temperatures = _get_empty_temperatures(since=since, until=until)
 
+    tupa_temperatures = _get_empty_temperatures(since=since, until=until)
     for _, timestamp, temperature in database.get_temperatures(
         database_connection,
         source="mokki/tupa/temperature",
         since=since,
     ):
-        temperatures[datetime.fromisoformat(timestamp).astimezone()] = temperature
+        tupa_temperatures[datetime.fromisoformat(timestamp).astimezone()] = temperature
+
+    kamari_temperatures = _get_empty_temperatures(since=since, until=until)
+    for _, timestamp, temperature in database.get_temperatures(
+        database_connection,
+        source="mokki/kamari/temperature",
+        since=since,
+    ):
+        kamari_temperatures[
+            datetime.fromisoformat(timestamp).astimezone()
+        ] = temperature
+
+    terassi_temperatures = _get_empty_temperatures(since=since, until=until)
+    for _, timestamp, temperature in database.get_temperatures(
+        database_connection,
+        source="mokki/terassi/temperature",
+        since=since,
+    ):
+        terassi_temperatures[
+            datetime.fromisoformat(timestamp).astimezone()
+        ] = temperature
+
+    sauna_temperatures = _get_empty_temperatures(since=since, until=until)
+    for _, timestamp, temperature in database.get_temperatures(
+        database_connection,
+        source="mokki/sauna/temperature",
+        since=since,
+    ):
+        sauna_temperatures[datetime.fromisoformat(timestamp).astimezone()] = temperature
 
     return {
-        "labels": list(temperatures.keys()),
+        "labels": list(tupa_temperatures.keys()),
         "datasets": [
             {
-                "data": list(temperatures.values()),
-                "label": "Temperature",
-                "borderColor": "#3e95cd",
-                "backgroundColor": "#7bb6dd",
-                "fill": True,
+                "data": list(tupa_temperatures.values()),
+                "label": "Tupa",
+                "borderColor": "#00dd00",
+                "backgroundColor": "#00ff00",
+            },
+            {
+                "data": list(kamari_temperatures.values()),
+                "label": "Kamari",
+                "borderColor": "#0000dd",
+                "backgroundColor": "#0000ff",
+            },
+            {
+                "data": list(terassi_temperatures.values()),
+                "label": "Terassi",
+                "borderColor": "#dd0000",
+                "backgroundColor": "#ff0000",
+            },
+            {
+                "data": list(sauna_temperatures.values()),
+                "label": "Sauna",
+                "borderColor": "#dddd00",
+                "backgroundColor": "#ffff00",
             },
         ],
     }
