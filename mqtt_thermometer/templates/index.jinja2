@@ -13,7 +13,7 @@
 <body>
     <h1>{{ greeting }}</h1>
 
-    <div hx-trigger="load, every 60s" hx-get="/temperatures" hx-swap="none" hx-ext="Chartjs"
+    <div hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
         style="position:relative; height:90vh; width:80vw">
         <canvas id="chart"></canvas>
     </div>
