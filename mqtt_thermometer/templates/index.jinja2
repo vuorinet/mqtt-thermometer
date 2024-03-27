@@ -31,6 +31,23 @@
                     scales: {
                         y: {
                             beginAtZero: true,
+                            // suggestedMin: -5,
+                            // suggestedMax: 25,
+                            position: 'right',
+                            ticks: {
+                                stepSize: 1,
+                                callback: function (value, index, values) {
+                                    return value + ' °C';
+                                },
+                            },
+                            grid: {
+                                color: function (context) {
+                                    if (context.tick.value % 10 === 0) {
+                                        return 'rgba(0, 0, 0, 1)';
+                                    }
+                                    return 'rgba(0, 0, 0, 0.1)';
+                                }
+                            }
                         },
                         x: {
                             type: 'time',
