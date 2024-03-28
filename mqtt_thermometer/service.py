@@ -65,7 +65,9 @@ async def get_temperatures(
         source="mokki/tupa/temperature",
         since=since,
     ):
-        tupa_temperatures[datetime.fromisoformat(timestamp).astimezone()] = temperature
+        tupa_temperatures[datetime.fromisoformat(timestamp).astimezone()] = (
+            float(temperature) + 1.1
+        )
 
     kamari_temperatures = _get_empty_temperatures(since=since, until=until)
     for _, timestamp, temperature in database.get_temperatures(
@@ -73,9 +75,9 @@ async def get_temperatures(
         source="mokki/kamari/temperature",
         since=since,
     ):
-        kamari_temperatures[
-            datetime.fromisoformat(timestamp).astimezone()
-        ] = temperature
+        kamari_temperatures[datetime.fromisoformat(timestamp).astimezone()] = (
+            float(temperature) - 0.2
+        )
 
     terassi_temperatures = _get_empty_temperatures(since=since, until=until)
     for _, timestamp, temperature in database.get_temperatures(
@@ -83,9 +85,9 @@ async def get_temperatures(
         source="mokki/terassi/temperature",
         since=since,
     ):
-        terassi_temperatures[
-            datetime.fromisoformat(timestamp).astimezone()
-        ] = temperature
+        terassi_temperatures[datetime.fromisoformat(timestamp).astimezone()] = (
+            float(temperature) - 0.25
+        )
 
     sauna_temperatures = _get_empty_temperatures(since=since, until=until)
     for _, timestamp, temperature in database.get_temperatures(
