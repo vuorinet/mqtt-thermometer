@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 from decimal import Decimal
 from mqtt_thermometer import database
+import time
 
 import paho.mqtt.client as mqtt
 
@@ -57,7 +58,17 @@ def poll_mqtt_messages():
     client.on_connect = on_connect
     client.on_message = on_message
 
-    client.connect("192.168.1.113", 1883)
+    for _ in range(10):
+        try:
+            client.connect("192.168.1.113", 1883)
+            break
+        except OSError as e:
+            print(f"Failed to connect: {e}. Retrying in 10 seconds...")
+            time.sleep(10)
+    else:
+        msg = "Failed to connect after 10 retries. Exiting..."
+        raise ConnectionError(msg)
+
     client.loop_forever()
 
     connection.close()
