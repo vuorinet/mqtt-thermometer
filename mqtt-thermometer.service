@@ -1,6 +1,6 @@
 [Unit]
 Description=MQTT thermometer
-After=network.target
+After=network.target mosquitto.service
 StartLimitIntervalSec=0
 
 [Service]
