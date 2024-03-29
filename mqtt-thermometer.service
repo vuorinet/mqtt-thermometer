@@ -1,5 +1,5 @@
 [Unit]
-Description=RuuviTag MQTT Publisher
+Description=MQTT thermometer
 After=network.target
 StartLimitIntervalSec=0
 
