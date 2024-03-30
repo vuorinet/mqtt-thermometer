@@ -14,20 +14,22 @@
     <h1>{{ greeting }}</h1>
 
     <div hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
-        style="position:relative; height:90vh; width:80vw">
+        style="position: relative; height: 85vh; width: 95vw;">
         <canvas id="chart"></canvas>
     </div>
 
 
     <script>
 
-
+        Chart.defaults.font.size = 24;
         const chart = new Chart(
             document.getElementById('chart'),
             {
                 type: 'line',
                 data: {},
                 options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
                     scales: {
                         y: {
                             beginAtZero: true,
