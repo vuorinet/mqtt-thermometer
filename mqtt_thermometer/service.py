@@ -61,67 +61,86 @@ async def get_temperatures(
     since = until - timedelta(hours=24)
 
     tupa_temperatures = _get_empty_temperatures(since=since, until=until)
+    last_tupa_temperature: Decimal | None = None
     for _, timestamp, temperature in database.get_temperatures(
         database_connection,
         source="mokki/tupa/temperature",
         since=since,
     ):
-        tupa_temperatures[datetime.fromisoformat(timestamp).astimezone()] = (
-            float(temperature) * 0.94 + 2.2
-        )
+        tupa_temperature = float(temperature) * 0.94 + 2.2
+        tupa_temperatures[
+            datetime.fromisoformat(timestamp).astimezone()
+        ] = tupa_temperature
+        if tupa_temperature is not None:
+            last_tupa_temperature = Decimal(tupa_temperature).quantize(Decimal("0.1"))
 
     kamari_temperatures = _get_empty_temperatures(since=since, until=until)
+    last_kamari_temperature: Decimal | None = None
     for _, timestamp, temperature in database.get_temperatures(
         database_connection,
         source="mokki/kamari/temperature",
         since=since,
     ):
-        kamari_temperatures[datetime.fromisoformat(timestamp).astimezone()] = (
-            float(temperature) - 0.2
-        )
+        kamari_temperature = float(temperature) - 0.2
+        kamari_temperatures[
+            datetime.fromisoformat(timestamp).astimezone()
+        ] = kamari_temperature
+        if kamari_temperature is not None:
+            last_kamari_temperature = Decimal(kamari_temperature).quantize(
+                Decimal("0.1")
+            )
 
     terassi_temperatures = _get_empty_temperatures(since=since, until=until)
+    last_terassi_temperature: Decimal | None = None
     for _, timestamp, temperature in database.get_temperatures(
         database_connection,
         source="mokki/terassi/temperature",
         since=since,
     ):
-        terassi_temperatures[datetime.fromisoformat(timestamp).astimezone()] = (
-            float(temperature) - 0.25
-        )
+        terassi_temperature = float(temperature) - 0.25
+        terassi_temperatures[
+            datetime.fromisoformat(timestamp).astimezone()
+        ] = terassi_temperature
+        if terassi_temperature is not None:
+            last_terassi_temperature = Decimal(terassi_temperature).quantize(
+                Decimal("0.1")
+            )
 
     sauna_temperatures = _get_empty_temperatures(since=since, until=until)
+    last_sauna_temperature: Decimal | None = None
     for _, timestamp, temperature in database.get_temperatures(
         database_connection,
         source="mokki/sauna/temperature",
         since=since,
     ):
         sauna_temperatures[datetime.fromisoformat(timestamp).astimezone()] = temperature
+        if temperature is not None:
+            last_sauna_temperature = Decimal(temperature).quantize(Decimal("0.1"))
 
     return {
         "labels": list(tupa_temperatures.keys()),
         "datasets": [
             {
                 "data": list(tupa_temperatures.values()),
-                "label": "Tupa",
+                "label": f"Tupa {last_tupa_temperature} °C",
                 "borderColor": "#00dd00",
                 "backgroundColor": "#00ff00",
             },
             {
                 "data": list(kamari_temperatures.values()),
-                "label": "Kamari",
+                "label": f"Kamari {last_kamari_temperature} °C",
                 "borderColor": "#00eeee",
                 "backgroundColor": "#00ddee",
             },
             {
                 "data": list(terassi_temperatures.values()),
-                "label": "Terassi",
+                "label": f"Terassi  {last_terassi_temperature} °C",
                 "borderColor": "#dd0000",
                 "backgroundColor": "#ff0000",
             },
             {
                 "data": list(sauna_temperatures.values()),
-                "label": "Sauna",
+                "label": f"Sauna  {last_sauna_temperature} °C",
                 "borderColor": "#dddd00",
                 "backgroundColor": "#ffff00",
             },
