@@ -11,6 +11,7 @@ from fastapi_htmx import htmx, htmx_init
 from sqlite3 import Connection
 from mqtt_thermometer import database
 from mqtt_thermometer import mqtt
+from fastapi.staticfiles import StaticFiles
 
 
 @asynccontextmanager
@@ -109,8 +110,8 @@ async def get_temperatures(
             {
                 "data": list(kamari_temperatures.values()),
                 "label": "Kamari",
-                "borderColor": "#0000dd",
-                "backgroundColor": "#0000ff",
+                "borderColor": "#00eeee",
+                "backgroundColor": "#00ddee",
             },
             {
                 "data": list(terassi_temperatures.values()),
@@ -126,3 +127,8 @@ async def get_temperatures(
             },
         ],
     }
+
+
+app.mount(
+    "/static", StaticFiles(directory=Path(__file__).parent / "static"), name="static"
+)

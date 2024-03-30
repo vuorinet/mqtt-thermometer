@@ -3,11 +3,11 @@
 
 <head>
     <title>Temperatures</title>
+    <link rel="stylesheet" href="static/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <script src="https://unpkg.com/htmx.org@1.9.6"></script>
     <script
         src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-
 </head>
 
 <body>
@@ -39,13 +39,14 @@
                                 callback: function (value, index, values) {
                                     return value + ' °C';
                                 },
+                                color: 'rgba(255, 255, 255, 1)'
                             },
                             grid: {
                                 color: function (context) {
                                     if (context.tick.value % 10 === 0) {
-                                        return 'rgba(0, 0, 0, 1)';
+                                        return 'rgba(255, 255, 255, 1)';
                                     }
-                                    return 'rgba(0, 0, 0, 0.1)';
+                                    return 'rgba(255, 255, 255, 0.1)';
                                 }
                             }
                         },
@@ -53,7 +54,10 @@
                             type: 'time',
                             time: {
                                 unit: 'hour',
-                            }
+                            },
+                            ticks: {
+                                color: 'rgba(255, 255, 255, 1)'
+                            },
                         }
                     },
                     elements: {
