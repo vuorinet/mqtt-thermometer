@@ -31,7 +31,7 @@ htmx_init(templates=Jinja2Templates(directory=Path(__file__).parent / "templates
 @app.get("/", response_class=HTMLResponse)
 @htmx("index", "index")
 async def root_page(request: Request):
-    return {"greeting": "Temperatures at the cottage"}
+    return {}
 
 
 async def get_db() -> AsyncGenerator[Connection, None]:
