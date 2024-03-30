@@ -55,10 +55,21 @@
                             type: 'time',
                             time: {
                                 unit: 'hour',
+                                displayFormats: {
+                                    hour: 'HH'
+                                }
                             },
                             ticks: {
                                 color: 'rgba(255, 255, 255, 1)'
                             },
+                            grid: {
+                                color: function (context) {
+                                    if (new Date(context.tick.value).getHours() % 12 === 0) {
+                                        return 'rgba(255, 255, 255, 1)';
+                                    }
+                                    return 'rgba(255, 255, 255, 0.1)';
+                                }
+                            }
                         }
                     },
                     elements: {
