@@ -66,7 +66,7 @@ async def get_temperatures(
         since=since,
     ):
         tupa_temperatures[datetime.fromisoformat(timestamp).astimezone()] = (
-            float(temperature) + 1.1
+            float(temperature) * 0.94 + 2.2
         )
 
     kamari_temperatures = _get_empty_temperatures(since=since, until=until)
