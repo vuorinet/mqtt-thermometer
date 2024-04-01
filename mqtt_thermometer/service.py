@@ -57,7 +57,7 @@ def _get_empty_temperatures(
 async def get_temperatures(
     request: Request, database_connection: Annotated[Connection, Depends(get_db)]
 ):  # noqa: ARG001
-    until = datetime.now(tz=UTC).replace(second=0, microsecond=0).astimezone()
+    until = datetime.now(tz=UTC).replace(second=0, microsecond=0)
     since = until - timedelta(hours=24)
 
     tupa_temperatures = _get_empty_temperatures(since=since, until=until)
