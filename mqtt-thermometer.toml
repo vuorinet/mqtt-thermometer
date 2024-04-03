@@ -1,0 +1,34 @@
+db_connection_string = "mqtt-thermometer.db"
+
+[mqtt_broker]
+host = "192.168.1.113"
+
+[[sources]]
+label = "Tupa"
+source = "mokki/tupa/temperature"
+calibration_multiplier = 0.94
+calibration_offset = 2.2
+border_color = "#00dd00"
+background_color = "#00ff00"
+
+[[sources]]
+label = "Kamari"
+source = "mokki/kamari/temperature"
+calibration_multiplier = 1
+calibration_offset = -0.2
+border_color = "#00eeee"
+background_color = "#00ddee"
+
+[[sources]]
+label = "Terassi"
+source = "mokki/terassi/temperature"
+calibration_multiplier = 1
+calibration_offset = -0.25
+border_color = "#dd0000"
+background_color = "#ff0000"
+
+[[sources]]
+label = "Sauna"
+source = "mokki/sauna/temperature"
+border_color = "#dddd00"
+background_color = "#ffff00"

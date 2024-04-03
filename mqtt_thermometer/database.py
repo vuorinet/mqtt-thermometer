@@ -4,6 +4,8 @@ from decimal import Decimal
 import sqlite3
 from sqlite3 import Connection
 
+from mqtt_thermometer.settings import settings
+
 
 def adapt_decimal(d):
     return str(d)
@@ -18,7 +20,7 @@ sqlite3.register_converter("DECTEXT", convert_decimal)
 
 
 def get_database_connection() -> Connection:
-    return sqlite3.connect("mokki.db")
+    return sqlite3.connect(settings.db_connection_string)
 
 
 def create_table():

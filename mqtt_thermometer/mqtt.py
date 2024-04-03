@@ -5,6 +5,8 @@ import time
 
 import paho.mqtt.client as mqtt
 
+from mqtt_thermometer.settings import settings, get_sources
+
 last_timestamp: datetime = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 source_temperatures: dict[str, list[Decimal]] = {}
 
@@ -16,14 +18,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
         print(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
     else:
-        client.subscribe(
-            [
-                ("mokki/tupa/temperature", 1),
-                ("mokki/kamari/temperature", 1),
-                ("mokki/terassi/temperature", 1),
-                ("mokki/sauna/temperature", 1),
-            ]
-        )
+        client.subscribe([(source, 1) for source in get_sources()])
 
 
 def on_message(client, userdata, message):
@@ -60,7 +55,7 @@ def poll_mqtt_messages():
 
     for _ in range(10):
         try:
-            client.connect("192.168.1.113", 1883)
+            client.connect(settings.mqtt_broker.host, settings.mqtt_broker.port)
             break
         except OSError as e:
             print(f"Failed to connect: {e}. Retrying in 10 seconds...")

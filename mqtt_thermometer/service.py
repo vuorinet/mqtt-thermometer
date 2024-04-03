@@ -13,6 +13,8 @@ from mqtt_thermometer import database
 from mqtt_thermometer import mqtt
 from fastapi.staticfiles import StaticFiles
 
+from mqtt_thermometer.settings import settings
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -42,108 +44,68 @@ async def get_db() -> AsyncGenerator[Connection, None]:
         db.close()
 
 
-def _get_empty_temperatures(
+def _get_empty_temperature_data(
     since: datetime, until: datetime
 ) -> dict[datetime, Decimal | None]:
-    temperatures = {}
+    empty_temperature_data = {}
     timestamp = since
     while timestamp <= until:
-        temperatures[timestamp] = None
+        empty_temperature_data[timestamp] = None
         timestamp += timedelta(minutes=1)
-    return temperatures
+    return empty_temperature_data
 
 
 @app.get("/temperatures")
 async def get_temperatures(
     request: Request, database_connection: Annotated[Connection, Depends(get_db)]
 ):  # noqa: ARG001
-    until = datetime.now(tz=UTC).replace(second=0, microsecond=0)
-    since = until - timedelta(hours=24)
+    def _get_temperature_data(
+        source: str, calibration_multiplier: Decimal, calibration_offset: Decimal
+    ) -> dict[datetime, Decimal | None]:
+        until = datetime.now(tz=UTC).replace(second=0, microsecond=0)
+        since = until - timedelta(hours=24)
 
-    tupa_temperatures = _get_empty_temperatures(since=since, until=until)
-    last_tupa_temperature: Decimal | None = None
-    for _, timestamp, temperature in database.get_temperatures(
-        database_connection,
-        source="mokki/tupa/temperature",
-        since=since,
-    ):
-        tupa_temperature = float(temperature) * 0.94 + 2.2
-        tupa_temperatures[
-            datetime.fromisoformat(timestamp).astimezone()
-        ] = tupa_temperature
-        if tupa_temperature is not None:
-            last_tupa_temperature = Decimal(tupa_temperature).quantize(Decimal("0.1"))
-
-    kamari_temperatures = _get_empty_temperatures(since=since, until=until)
-    last_kamari_temperature: Decimal | None = None
-    for _, timestamp, temperature in database.get_temperatures(
-        database_connection,
-        source="mokki/kamari/temperature",
-        since=since,
-    ):
-        kamari_temperature = float(temperature) - 0.2
-        kamari_temperatures[
-            datetime.fromisoformat(timestamp).astimezone()
-        ] = kamari_temperature
-        if kamari_temperature is not None:
-            last_kamari_temperature = Decimal(kamari_temperature).quantize(
-                Decimal("0.1")
+        temperature_data = _get_empty_temperature_data(since=since, until=until)
+        for _, timestamp, temperature in database.get_temperatures(
+            database_connection,
+            source=source,
+            since=since,
+        ):
+            terassi_temperature = (
+                Decimal(temperature) * calibration_multiplier + calibration_offset
             )
+            temperature_data[
+                datetime.fromisoformat(timestamp).astimezone()
+            ] = terassi_temperature
+        return temperature_data
 
-    terassi_temperatures = _get_empty_temperatures(since=since, until=until)
-    last_terassi_temperature: Decimal | None = None
-    for _, timestamp, temperature in database.get_temperatures(
-        database_connection,
-        source="mokki/terassi/temperature",
-        since=since,
-    ):
-        terassi_temperature = float(temperature) - 0.25
-        terassi_temperatures[
-            datetime.fromisoformat(timestamp).astimezone()
-        ] = terassi_temperature
-        if terassi_temperature is not None:
-            last_terassi_temperature = Decimal(terassi_temperature).quantize(
-                Decimal("0.1")
-            )
-
-    sauna_temperatures = _get_empty_temperatures(since=since, until=until)
-    last_sauna_temperature: Decimal | None = None
-    for _, timestamp, temperature in database.get_temperatures(
-        database_connection,
-        source="mokki/sauna/temperature",
-        since=since,
-    ):
-        sauna_temperatures[datetime.fromisoformat(timestamp).astimezone()] = temperature
-        if temperature is not None:
-            last_sauna_temperature = Decimal(temperature).quantize(Decimal("0.1"))
+    def _get_last_known_temperature(
+        temperature_data: dict[datetime, Decimal | None],
+    ) -> Decimal | None:
+        temperatures = list(temperature_data.values())
+        if temperatures[-1] is not None:
+            return Decimal(temperatures[-1]).quantize(Decimal("0.1"))
+        elif temperatures[-2] is not None:
+            return Decimal(temperatures[-2]).quantize(Decimal("0.1"))
+        else:
+            return None
 
     return {
-        "labels": list(tupa_temperatures.keys()),
         "datasets": [
             {
-                "data": list(tupa_temperatures.values()),
-                "label": f"Tupa {last_tupa_temperature} °C",
-                "borderColor": "#00dd00",
-                "backgroundColor": "#00ff00",
-            },
-            {
-                "data": list(kamari_temperatures.values()),
-                "label": f"Kamari {last_kamari_temperature} °C",
-                "borderColor": "#00eeee",
-                "backgroundColor": "#00ddee",
-            },
-            {
-                "data": list(terassi_temperatures.values()),
-                "label": f"Terassi  {last_terassi_temperature} °C",
-                "borderColor": "#dd0000",
-                "backgroundColor": "#ff0000",
-            },
-            {
-                "data": list(sauna_temperatures.values()),
-                "label": f"Sauna  {last_sauna_temperature} °C",
-                "borderColor": "#dddd00",
-                "backgroundColor": "#ffff00",
-            },
+                "data": temperature_data,
+                "label": f"{source.label} {_get_last_known_temperature(temperature_data)} °C",
+                "borderColor": source.border_color.as_hex("long"),
+                "backgroundColor": source.background_color.as_hex("long"),
+            }
+            for source in settings.sources
+            if (
+                temperature_data := _get_temperature_data(
+                    source=source.source,
+                    calibration_multiplier=source.calibration_multiplier,
+                    calibration_offset=source.calibration_offset,
+                )
+            )
         ],
     }
 
