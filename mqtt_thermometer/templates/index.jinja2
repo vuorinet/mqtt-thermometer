@@ -36,7 +36,7 @@
                             // suggestedMax: 25,
                             position: 'right',
                             ticks: {
-                                stepSize: 1,
+                                stepSize: 5,
                                 callback: function (value, index, values) {
                                     return value + ' °C';
                                 },
@@ -47,7 +47,7 @@
                                     if (context.tick.value % 10 === 0) {
                                         return 'rgba(255, 255, 255, 1)';
                                     }
-                                    return 'rgba(255, 255, 255, 0.3)';
+                                    return 'rgba(255, 255, 255, 0.2)';
                                 }
                             }
                         },
@@ -67,7 +67,10 @@
                                     if (new Date(context.tick.value).getHours() % 12 === 0) {
                                         return 'rgba(255, 255, 255, 1)';
                                     }
-                                    return 'rgba(255, 255, 255, 0.3)';
+                                    if (new Date(context.tick.value).getHours() % 3 === 0) {
+                                        return 'rgba(255, 255, 255, 0.5)';
+                                    }
+                                    return 'rgba(255, 255, 255, 0.2)';
                                 }
                             }
                         }
