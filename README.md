@@ -8,9 +8,13 @@ The goal of this project is to monitor temperature from various sources using MQ
 
 MQTT broker (for example https://mosquitto.org/) must be installed and running.
 
-## Run locally
-
 Use recent enough version of Python. This project is developed using Python 3.12.
+
+The project utilizes FastAPI, fastapi-htmx, Pydantic, Paho-MQTT and Uvicorn.
+
+The project does not rely on NPM or NodeJS 💪. Instead, it utilizes htmx (https://htmx.org/), Chart.js (https://www.chartjs.org/), and some vanilla JavaScript for interactivity.
+
+## Run locally
 
 ```bash
 python -m venv env
