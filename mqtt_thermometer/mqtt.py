@@ -5,7 +5,7 @@ import time
 
 import paho.mqtt.client as mqtt
 
-from mqtt_thermometer.settings import settings, get_sources
+from mqtt_thermometer.settings import settings
 
 last_timestamp: datetime = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 source_temperatures: dict[str, list[Decimal]] = {}
@@ -18,7 +18,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
         print(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
     else:
-        client.subscribe([(source, 1) for source in get_sources()])
+        client.subscribe([(source.source, 1) for source in settings.sources])
 
 
 def on_message(client, userdata, message):

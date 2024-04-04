@@ -48,7 +48,3 @@ class RootSettings(BaseSettings):
 
 
 settings = RootSettings()
-
-
-def get_sources() -> list[str]:
-    return [source.source for source in settings.sources]

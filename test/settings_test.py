@@ -1,5 +1,5 @@
 from decimal import Decimal
-from mqtt_thermometer.settings import settings, get_sources
+from mqtt_thermometer.settings import settings
 
 
 def test_config():
@@ -21,13 +21,3 @@ def test_config():
     assert sauna_source.source == "mokki/sauna/temperature"
     assert sauna_source.border_color.as_hex("long") == "#dddd00"
     assert sauna_source.background_color.as_hex("long") == "#ffff00"
-
-
-def test_get_sources():
-    sources = get_sources()
-    assert sources == [
-        "mokki/tupa/temperature",
-        "mokki/kamari/temperature",
-        "mokki/terassi/temperature",
-        "mokki/sauna/temperature",
-    ]
