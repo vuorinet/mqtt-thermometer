@@ -77,6 +77,15 @@ async def get_temperatures(
             temperature_data[
                 datetime.fromisoformat(timestamp).astimezone()
             ] = terassi_temperature
+        for index, (timestamp, temperature) in enumerate(temperature_data.items()):
+            if temperature is None and index > 0 and index < len(temperature_data) - 1:
+                previous_temperature = list(temperature_data.values())[index - 1]
+                next_temperature = list(temperature_data.values())[index + 1]
+                if previous_temperature is not None and next_temperature is not None:
+                    temperature_data[timestamp] = (
+                        previous_temperature + next_temperature
+                    ) / 2
+
         return temperature_data
 
     def _get_last_known_temperature(
