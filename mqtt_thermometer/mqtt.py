@@ -2,16 +2,19 @@ from datetime import UTC, datetime
 from decimal import Decimal
 from mqtt_thermometer import database
 import time
-
+import asyncio
 import paho.mqtt.client as mqtt
 
 from mqtt_thermometer.settings import settings
 
+loop = asyncio.get_event_loop()
 last_timestamp: datetime = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 source_temperatures: dict[str, list[Decimal]] = {}
 
 connection = None
 client = None
+
+main_queue: asyncio.Queue | None = None
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
@@ -30,6 +33,9 @@ def on_message(client, userdata, message):
     source_temperatures.setdefault(source, []).append(temperature)
     timestamp = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 
+    assert main_queue
+    asyncio.run_coroutine_threadsafe(main_queue.put((source, temperature)), loop)
+
     if timestamp == last_timestamp:
         return
 
@@ -45,8 +51,9 @@ def on_message(client, userdata, message):
     last_timestamp = timestamp
 
 
-def poll_mqtt_messages():
-    global connection, client
+def poll_mqtt_messages(queue: asyncio.Queue):
+    global connection, client, main_queue
+    main_queue = queue
     connection = database.get_database_connection()
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)

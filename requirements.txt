@@ -3,4 +3,5 @@ fastapi
 fastapi-htmx
 pydantic-settings
 pydantic-extra-types
+websockets
 uvicorn
