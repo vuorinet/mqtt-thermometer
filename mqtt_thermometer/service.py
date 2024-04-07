@@ -46,7 +46,6 @@ htmx_init(templates=templates)
 async def worker(queue):
     while True:
         source_mqtt_topic, temperature = await queue.get()
-        print(f"Received {source_mqtt_topic}: {temperature}")
         for source in settings.sources:
             if source.source == source_mqtt_topic:
                 temperature = (
