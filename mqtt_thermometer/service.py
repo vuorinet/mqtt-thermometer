@@ -16,7 +16,7 @@ from fastapi.staticfiles import StaticFiles
 import asyncio
 from mqtt_thermometer.settings import settings
 
-queue = asyncio.Queue(maxsize=1)
+mqtt_message_queue = asyncio.Queue(maxsize=1)
 
 ws_connections: set[WebSocket] = set()
 
@@ -24,17 +24,19 @@ ws_connections: set[WebSocket] = set()
 @dataclass
 class LegendData:
     label: str
-    temperature: Decimal
+    temperature: Decimal | None
     border_color: str
     background_color: str
+    last_updated: datetime
 
 
 legend_data: dict[str, LegendData] = {
     source.label: LegendData(
         label=source.label,
-        temperature=Decimal("0.0"),
+        temperature=None,
         border_color=source.border_color.as_hex("long"),
         background_color=source.background_color.as_hex("long"),
+        last_updated=datetime.now(tz=UTC),
     )
     for source in settings.sources
 }
@@ -43,7 +45,33 @@ templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 htmx_init(templates=templates)
 
 
-async def worker(queue):
+def _get_legends_element():
+    return templates.get_template("legends.jinja2").render({"legend_data": legend_data})
+
+
+async def _broadcast_temperature_data():
+    for websocket in ws_connections:
+        await websocket.send_text(_get_legends_element())
+
+
+async def reset_inactive_temperatures():
+    while True:
+        await asyncio.sleep(60)
+        for source in settings.sources:
+            if (
+                datetime.now(tz=UTC) - legend_data[source.label].last_updated
+            ) >= timedelta(seconds=60):
+                legend_data[source.label] = LegendData(
+                    label=source.label,
+                    temperature=None,
+                    border_color=source.border_color.as_hex("long"),
+                    background_color=source.background_color.as_hex("long"),
+                    last_updated=datetime.now(tz=UTC),
+                )
+        await _broadcast_temperature_data()
+
+
+async def process_mqtt_queue(queue):
     while True:
         source_mqtt_topic, temperature = await queue.get()
         for source in settings.sources:
@@ -57,21 +85,19 @@ async def worker(queue):
                     temperature=temperature.quantize(Decimal("0.1")),
                     border_color=source.border_color.as_hex("long"),
                     background_color=source.background_color.as_hex("long"),
+                    last_updated=datetime.now(tz=UTC),
                 )
-                for websocket in ws_connections:
-                    text = templates.get_template("legends.jinja2").render(
-                        {"legend_data": legend_data}
-                    )
-                    await websocket.send_text(text)
+                await _broadcast_temperature_data()
                 break
         queue.task_done()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    asyncio.create_task(worker(queue))
+    asyncio.create_task(process_mqtt_queue(mqtt_message_queue))
+    asyncio.create_task(reset_inactive_temperatures())
     database.create_table()
-    thread = Thread(target=mqtt.poll_mqtt_messages, args=(queue,))
+    thread = Thread(target=mqtt.poll_mqtt_messages, args=(mqtt_message_queue,))
     thread.start()
     yield
     mqtt.stop_polling()
@@ -86,6 +112,7 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     ws_connections.add(websocket)
     try:
+        await websocket.send_text(_get_legends_element())
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
