@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
+import logging
 from pathlib import Path
 from threading import Thread
 from typing import Annotated, AsyncGenerator
@@ -10,6 +11,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from fastapi_htmx import htmx, htmx_init
 from sqlite3 import Connection
+
 from mqtt_thermometer import database
 from mqtt_thermometer import mqtt
 from fastapi.staticfiles import StaticFiles
@@ -19,6 +21,8 @@ from mqtt_thermometer.settings import settings
 mqtt_message_queue = asyncio.Queue(maxsize=1)
 
 ws_connections: set[WebSocket] = set()
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -50,8 +54,12 @@ def _get_legends_element():
 
 
 async def _broadcast_temperature_data():
+    text = _get_legends_element()
     for websocket in ws_connections:
-        await websocket.send_text(_get_legends_element())
+        try:
+            await websocket.send_text(text)
+        except WebSocketDisconnect:
+            logger.exception("Failed to send temperature data to websocket")
 
 
 async def reset_inactive_temperatures():
