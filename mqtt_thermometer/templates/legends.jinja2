@@ -1,15 +1,13 @@
 <div id="legends">
-    <div style="
-            display: flex; 
-            flex-direction: row;
-            justify-content: center;">
+    <div id="legendcontainer">
         {% for legend_data in legend_data.values() if legend_data.temperature != None %}
-        <div style="padding-left: 10px; padding-right: 10px;">
-            <div style="margin: 0 auto; width: 40px; height: 20px; background-color:
-        {{legend_data.background_color}}; border: 2px solid {{legend_data.border_color}};">
+        <div class="legenditem">
+            <div class="legendcolorbox" style="
+                    background-color: {{legend_data.background_color}};
+                    border: 2px solid {{legend_data.border_color}};
+                    ">
             </div>
-            <div
-                style="width: 170px; margin: 0 auto; font-size: 24; font-family: Verdana, Geneva, Tahoma, sans-serif; padding-top: 10px;">
+            <div class="legendlabel">
                 {{legend_data.label}}: {{legend_data.temperature}} °C
             </div>
         </div>
