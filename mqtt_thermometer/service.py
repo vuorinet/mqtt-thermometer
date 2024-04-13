@@ -60,6 +60,8 @@ async def _broadcast_temperature_data():
             await websocket.send_text(text)
         except WebSocketDisconnect:
             logger.exception("Failed to send temperature data to websocket")
+            if websocket in ws_connections:
+                ws_connections.remove(websocket)
 
 
 async def reset_inactive_temperatures():
