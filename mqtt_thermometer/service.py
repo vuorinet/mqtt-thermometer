@@ -55,11 +55,11 @@ def _get_legends_element():
 
 async def _broadcast_temperature_data():
     text = _get_legends_element()
-    for websocket in ws_connections:
+    for websocket in ws_connections.copy():
         try:
             await websocket.send_text(text)
         except WebSocketDisconnect:
-            logger.exception("Failed to send temperature data to websocket")
+            logger.warning("Failed to send temperature data to websocket")
             if websocket in ws_connections:
                 ws_connections.remove(websocket)
 
