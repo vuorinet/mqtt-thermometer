@@ -1,5 +1,6 @@
 from datetime import UTC, datetime
 from decimal import Decimal
+import logging
 from mqtt_thermometer import database
 import time
 import asyncio
@@ -16,10 +17,12 @@ client = None
 
 main_queue: asyncio.Queue | None = None
 
+logger = logging.getLogger(__name__)
+
 
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code.is_failure:
-        print(f"Failed to connect: {reason_code}. loop_forever() will retry connection")
+        logger.error("Failed to connect: %s", reason_code)
     else:
         client.subscribe([(source.source, 1) for source in settings.sources])
 
@@ -43,7 +46,12 @@ def on_message(client, userdata, message):
         average_temperature = Decimal(sum(temperatures) / len(temperatures)).quantize(
             Decimal("0.11")
         )
-        print(last_timestamp.astimezone(), source, average_temperature)
+        logger.debug(
+            "Saving temperature: %s %s %s",
+            last_timestamp.astimezone(),
+            source,
+            average_temperature,
+        )
         database.save_temperature(
             connection, source, last_timestamp, average_temperature
         )
@@ -65,7 +73,7 @@ def poll_mqtt_messages(queue: asyncio.Queue):
             client.connect(settings.mqtt_broker.host, settings.mqtt_broker.port)
             break
         except OSError as e:
-            print(f"Failed to connect: {e}. Retrying in 10 seconds...")
+            logger.error("Failed to connect: %s. Retrying in 10 seconds...", e)
             time.sleep(10)
     else:
         msg = "Failed to connect after 10 retries. Exiting..."
