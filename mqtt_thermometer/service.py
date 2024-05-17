@@ -164,6 +164,7 @@ async def get_temperatures(
         until = datetime.now(tz=UTC).replace(second=0, microsecond=0)
         since = until - timedelta(hours=24)
 
+        last_temperature = None
         temperature_data = _get_empty_temperature_data(since=since, until=until)
         for _, timestamp, temperature in database.get_temperatures(
             database_connection,
@@ -173,9 +174,16 @@ async def get_temperatures(
             temperature = (
                 Decimal(temperature) * calibration_multiplier + calibration_offset
             )
-            temperature_data[
-                datetime.fromisoformat(timestamp).astimezone()
-            ] = temperature
+            MAX_STEP = Decimal("0.1")
+            if last_temperature is not None:
+                if temperature - last_temperature > MAX_STEP:
+                    temperature = last_temperature + MAX_STEP
+                elif temperature - last_temperature < -MAX_STEP:
+                    temperature = last_temperature - MAX_STEP
+            last_temperature = temperature
+            time_index = datetime.fromisoformat(timestamp).astimezone()
+            if time_index in temperature_data:
+                temperature_data[time_index] = temperature
         for index, (timestamp, temperature) in enumerate(temperature_data.items()):
             if temperature is None and index > 0 and index < len(temperature_data) - 1:
                 previous_temperature = list(temperature_data.values())[index - 1]
@@ -205,6 +213,7 @@ async def get_temperatures(
                 "label": source.label,
                 "borderColor": source.border_color.as_hex("long"),
                 "backgroundColor": source.background_color.as_hex("long"),
+                "borderJoinStyle": "round",
             }
             for source in settings.sources
             if (
