@@ -174,7 +174,7 @@ async def get_temperatures(
             temperature = (
                 Decimal(temperature) * calibration_multiplier + calibration_offset
             )
-            MAX_STEP = Decimal("0.1")
+            MAX_STEP = Decimal("0.5")
             if last_temperature is not None:
                 if temperature - last_temperature > MAX_STEP:
                     temperature = last_temperature + MAX_STEP
