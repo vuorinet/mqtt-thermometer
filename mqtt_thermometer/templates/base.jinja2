@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <!-- Update viewport settings for better mobile scaling -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}MQTT Thermometer{% endblock %}</title>
+
+    <!-- Favicon links for various platforms -->
+    <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+
+    <!-- Web App Manifest - Multiple paths for maximum compatibility -->
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+
+    <!-- Essential Meta Tags for Mobile -->
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="application-name" content="MQTT Thermometer">
+    <meta name="apple-mobile-web-app-title" content="MQTT Thermometer">
+    <meta name="theme-color" content="#ffffff">
+
+    <link rel="stylesheet" href="/static/styles.css">
+
+    {% block head %}{% endblock %}
+
+</head>
+
+<body>
+    {% block content %}{% endblock %}
+</body>
+
+</html>

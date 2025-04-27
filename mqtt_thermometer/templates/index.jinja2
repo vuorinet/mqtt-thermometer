@@ -1,115 +1,131 @@
-<!DOCTYPE html>
-<html>
+{% extends "base.jinja2" %}
 
-<head>
-    <title>Temperatures</title>
-    <link rel="stylesheet" href="static/styles.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
-    <script
-        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/ws.js"></script>
-</head>
+{% block title %}Temperatures{% endblock %}
 
-<body>
-    <div hx-ext="ws" ws-connect="/ws">
-        <div id="legends"></div>
-    </div>
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.6"></script>
+<script
+    src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.11/dist/ext/ws.js"></script>
+{% endblock %}
 
-    <div hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
-        style="position: relative; height: 85vh; width: 95vw;">
-        <canvas id="chart"></canvas>
-    </div>
+{% block content %}
+<div hx-ext="ws" ws-connect="/ws">
+    <div id="legends"></div>
+</div>
 
-    <script>
+<div class="chart-container" hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
+    style="position: relative; height: 85vh; width: 95vw;">
+    <canvas id="chart"></canvas>
+</div>
 
-        Chart.defaults.font.size = 24;
+<script>
+    // Determine if we're on mobile
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
 
-        const chart = new Chart(
-            document.getElementById('chart'),
-            {
-                type: 'line',
-                data: {},
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            // suggestedMin: -5,
-                            // suggestedMax: 25,
-                            position: 'right',
-                            ticks: {
-                                stepSize: 5,
-                                callback: function (value, index, values) {
-                                    return value + ' °C';
-                                },
-                                color: 'rgba(255, 255, 255, 1)'
+    // Adjust chart defaults for mobile
+    if (isMobile) {
+        Chart.defaults.font.size = 10;  // Smaller font for mobile
+    } else {
+        Chart.defaults.font.size = 24;  // Original font size for desktop
+    }
+
+    const chart = new Chart(
+        document.getElementById('chart'),
+        {
+            type: 'line',
+            data: {},
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        position: 'right',
+                        ticks: {
+                            stepSize: 5,
+                            callback: function (value, index, values) {
+                                return value + ' °C';
                             },
-                            grid: {
-                                color: function (context) {
-                                    if (context.tick.value % 10 === 0) {
-                                        return 'rgba(255, 255, 255, 1)';
-                                    }
-                                    return 'rgba(255, 255, 255, 0.2)';
+                            color: 'rgba(255, 255, 255, 1)',
+                            maxTicksLimit: isMobile ? 8 : undefined // Fewer ticks on mobile
+                        },
+                        grid: {
+                            color: function (context) {
+                                if (context.tick.value % 10 === 0) {
+                                    return 'rgba(255, 255, 255, 1)';
                                 }
+                                return 'rgba(255, 255, 255, 0.2)';
+                            }
+                        }
+                    },
+                    x: {
+                        type: 'time',
+                        time: {
+                            unit: isMobile ? 'hour' : 'hour',
+                            displayFormats: {
+                                hour: isMobile ? 'H' : 'H'
                             }
                         },
-                        x: {
-                            type: 'time',
-                            time: {
-                                unit: 'hour',
-                                displayFormats: {
-                                    hour: 'H'
+                        ticks: {
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: isMobile ? 6 : 24,
+                            color: 'rgba(255, 255, 255, 1)'
+                        },
+                        grid: {
+                            color: function (context) {
+                                if (new Date(context.tick.value).getHours() % 12 === 0) {
+                                    return 'rgba(255, 255, 255, 1)';
                                 }
-                            },
-                            ticks: {
-                                color: 'rgba(255, 255, 255, 1)'
-                            },
-                            grid: {
-                                color: function (context) {
-                                    if (new Date(context.tick.value).getHours() % 12 === 0) {
-                                        return 'rgba(255, 255, 255, 1)';
-                                    }
-                                    if (new Date(context.tick.value).getHours() % 3 === 0) {
-                                        return 'rgba(255, 255, 255, 0.5)';
-                                    }
-                                    return 'rgba(255, 255, 255, 0.2)';
+                                if (new Date(context.tick.value).getHours() % 3 === 0) {
+                                    return 'rgba(255, 255, 255, 0.5)';
                                 }
+                                return 'rgba(255, 255, 255, 0.2)';
                             }
                         }
-                    },
-                    elements: {
-                        point: {
-                            radius: 0
-                        }
-                    },
-                    animation: {
-                        duration: 0
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
                     }
+                },
+                elements: {
+                    point: {
+                        radius: 0
+                    },
+                    line: {
+                        borderWidth: isMobile ? 2 : 3
+                    }
+                },
+                animation: {
+                    duration: 0
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                },
+                layout: {
+                    padding: isMobile ? 0 : 8 // Reduce padding on mobile
                 }
             }
-        );
+        }
+    );
 
-        htmx.defineExtension('Chartjs', {
-            transformResponse: function (text, xhr, elt) {
-                var data = JSON.parse(text);
-                var ctx = document.getElementById('chart').getContext('2d');
-                chart.data = data;
-                chart.update();
-                return "";
-            }
-        });
+    // Handle screen orientation changes
+    window.addEventListener('resize', function () {
+        const newIsMobile = window.matchMedia("(max-width: 767px)").matches;
+        if (newIsMobile !== isMobile) {
+            location.reload();
+        }
+    });
 
-    </script>
-
-
-
-</body>
-
-</html>
+    htmx.defineExtension('Chartjs', {
+        transformResponse: function (text, xhr, elt) {
+            var data = JSON.parse(text);
+            var ctx = document.getElementById('chart').getContext('2d');
+            chart.data = data;
+            chart.update();
+            return "";
+        }
+    });
+</script>
+{% endblock %}

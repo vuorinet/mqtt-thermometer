@@ -1,21 +1,21 @@
-from dataclasses import dataclass
+import asyncio
+import logging
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
-import logging
 from pathlib import Path
+from sqlite3 import Connection
 from threading import Thread
 from typing import Annotated, AsyncGenerator
-from fastapi import FastAPI, Request, Depends, WebSocket, WebSocketDisconnect
-from fastapi.responses import HTMLResponse
+
+from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi_htmx import htmx, htmx_init
-from sqlite3 import Connection
 
-from mqtt_thermometer import database
-from mqtt_thermometer import mqtt
-from fastapi.staticfiles import StaticFiles
-import asyncio
+from mqtt_thermometer import database, mqtt
 from mqtt_thermometer.settings import settings
 
 mqtt_message_queue = asyncio.Queue(maxsize=1)
@@ -225,6 +225,24 @@ async def get_temperatures(
             )
         ],
     }
+
+
+# Add favicon route to handle direct requests
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse(Path(__file__).parent / "static" / "favicon.ico")
+
+
+# Add manifest routes with correct MIME type for all possible paths
+@app.get("/manifest.json")
+@app.get("/site.webmanifest")
+@app.get("/static/manifest.json")
+@app.get("/static/site.webmanifest")
+async def manifest():
+    return FileResponse(
+        Path(__file__).parent / "static" / "site.webmanifest",
+        media_type="application/manifest+json",
+    )
 
 
 app.mount(
