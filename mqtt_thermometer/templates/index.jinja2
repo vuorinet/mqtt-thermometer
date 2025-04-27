@@ -49,7 +49,7 @@
                                 return value + ' °C';
                             },
                             color: 'rgba(255, 255, 255, 1)',
-                            maxTicksLimit: isMobile ? 8 : undefined // Fewer ticks on mobile
+                            maxTicksLimit: undefined
                         },
                         grid: {
                             color: function (context) {
@@ -63,15 +63,15 @@
                     x: {
                         type: 'time',
                         time: {
-                            unit: isMobile ? 'hour' : 'hour',
+                            unit: 'hour',
                             displayFormats: {
-                                hour: isMobile ? 'H' : 'H'
+                                hour: 'H'
                             }
                         },
                         ticks: {
                             maxRotation: 0,
                             autoSkip: true,
-                            maxTicksLimit: isMobile ? 6 : 24,
+                            maxTicksLimit: 24,
                             color: 'rgba(255, 255, 255, 1)'
                         },
                         grid: {
