@@ -18,12 +18,22 @@ body {
 #legendcontainer {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  justify-content: space-between; /* Changed from center to space-between */
+  width: 100%; /* Ensure container takes full width */
+  padding: 0; /* Remove padding to maximize space */
+  margin: 0 auto; /* Center the container */
 }
 
 .legenditem {
-  padding-left: 10px;
-  padding-right: 10px;
+  flex: 1; /* Make items grow equally */
+  min-width: 0; /* Allow items to shrink below content size if needed */
+  text-align: center; /* Center text within items */
+  padding: 5px; /* Equal padding */
+  box-sizing: border-box; /* Include padding in width calculation */
+  display: flex; /* Use flex for each item */
+  flex-direction: column; /* Stack contents vertically */
+  align-items: center; /* Center items horizontally */
+  justify-content: flex-start; /* Align to top */
 }
 
 .legendcolorbox {
@@ -38,6 +48,10 @@ body {
   font-family: Verdana, Geneva, Tahoma, sans-serif;
   padding-top: 10px;
   text-align: center !important;
+  width: 100%; /* Ensure label takes full width */
+  overflow: hidden; /* Hide overflow text */
+  text-overflow: ellipsis; /* Add ellipsis for overflow */
+  white-space: nowrap; /* Prevent wrapping */
 }
 
 /* Mobile-specific styles */
