@@ -66,11 +66,11 @@ async def _broadcast_temperature_data():
 
 async def reset_inactive_temperatures():
     while True:
-        await asyncio.sleep(60)
+        await asyncio.sleep(10)
         for source in settings.sources:
             if (
                 datetime.now(tz=UTC) - legend_data[source.label].last_updated
-            ) >= timedelta(seconds=60):
+            ) >= timedelta(seconds=60 * 5):
                 legend_data[source.label] = LegendData(
                     label=source.label,
                     temperature=None,
