@@ -1,0 +1,40 @@
+name: Deploy service
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  run-script:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin/uv" >> $GITHUB_PATH
+
+      - name: Build
+        run: |
+          uv sync
+
+      - name: Blue-green deployment
+        run: |
+          cp -r . /tmp/mqtt-thermometer-blue
+          cp /srv/mqtt-thermometer/*.db /tmp/mqtt-thermometer-blue
+          cp /srv/mqtt-thermometer/mqtt-thermometer.toml /tmp/mqtt-thermometer-blue
+
+          sudo systemctl stop mqtt-thermometer.service
+          sudo rm /etc/systemd/system/mqtt-thermometer.service
+          sudo rm -rf /srv/mqtt-thermometer/*
+          sudo mv /tmp/mqtt-thermometer-blue/* /srv/mqtt-thermometer/
+
+          sudo ln -s /srv/mqtt-thermometer/mqtt-thermometer.service /etc/systemd/system/mqtt-thermometer.service
+          sudo systemctl daemon-reload
+          sudo systemctl enable mqtt-thermometer.service
+          sudo systemctl restart mqtt-thermometer.service
+
+          sudo rm /tmp/mqtt-thermometer-blue
