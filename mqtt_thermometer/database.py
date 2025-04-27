@@ -1,10 +1,13 @@
+import sqlite3
+import threading
 from datetime import datetime
 from decimal import Decimal
-
-import sqlite3
 from sqlite3 import Connection
 
 from mqtt_thermometer.settings import settings
+
+# Create a mutex for database operations
+db_mutex = threading.RLock()
 
 
 def adapt_decimal(d):
@@ -24,42 +27,47 @@ def get_database_connection() -> Connection:
 
 
 def create_table():
-    connection = get_database_connection()
-    cursor = connection.cursor()
-    cursor.execute(
-        "CREATE TABLE IF NOT EXISTS temperature ("
-        "id INTEGER PRIMARY KEY AUTOINCREMENT, "
-        "source TEXT, "
-        "timestamp TEXT, "
-        "temperature DECTEXT"
-        ")"
-    )
-    cursor.execute(
-        "CREATE INDEX IF NOT EXISTS timestamp_index ON temperature (timestamp)"
-    )
-    cursor.execute("CREATE INDEX IF NOT EXISTS source_index ON temperature (source)")
-    connection.commit()
+    with db_mutex:
+        connection = get_database_connection()
+        cursor = connection.cursor()
+        cursor.execute(
+            "CREATE TABLE IF NOT EXISTS temperature ("
+            "id INTEGER PRIMARY KEY AUTOINCREMENT, "
+            "source TEXT, "
+            "timestamp TEXT, "
+            "temperature DECTEXT"
+            ")"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS timestamp_index ON temperature (timestamp)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS source_index ON temperature (source)"
+        )
+        connection.commit()
 
 
 def save_temperature(
     connection: Connection, source: str, timestamp: datetime, temperature: Decimal
 ):
-    cursor = connection.cursor()
-    cursor.execute(
-        "INSERT INTO temperature (source, timestamp, temperature) VALUES (?, ?, ?)",
-        (source, timestamp.isoformat(), temperature),
-    )
-    connection.commit()
+    with db_mutex:
+        cursor = connection.cursor()
+        cursor.execute(
+            "INSERT INTO temperature (source, timestamp, temperature) VALUES (?, ?, ?)",
+            (source, timestamp.isoformat(), temperature),
+        )
+        connection.commit()
 
 
 def get_temperatures(connection: Connection, source: str, since: datetime):
-    cursor = connection.cursor()
-    cursor.execute(
-        "SELECT source, timestamp, temperature FROM temperature "
-        f"WHERE source='{source}' AND timestamp >= '{since.isoformat()}'"
-        "ORDER BY timestamp"
-    )
-    return cursor.fetchall()
+    with db_mutex:
+        cursor = connection.cursor()
+        cursor.execute(
+            "SELECT source, timestamp, temperature FROM temperature "
+            f"WHERE source='{source}' AND timestamp >= '{since.isoformat()}'"
+            "ORDER BY timestamp"
+        )
+        return cursor.fetchall()
 
 
 if __name__ == "__main__":
