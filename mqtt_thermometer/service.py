@@ -116,6 +116,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+# Add version for cache busting
+APP_VERSION = "1.0.0"  # Increment this on each deployment
+
 
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
@@ -132,7 +135,7 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/", response_class=HTMLResponse)
 @htmx("index", "index")
 async def root_page(request: Request):
-    return {}
+    return {"version": APP_VERSION}
 
 
 async def get_db() -> AsyncGenerator[Connection, None]:

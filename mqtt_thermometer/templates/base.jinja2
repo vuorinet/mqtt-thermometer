@@ -27,6 +27,79 @@
 
     {% block head %}{% endblock %}
 
+    <script>
+        // PWA update handling
+        let newWorker;
+        let refreshing = false;
+
+        // Check for service worker updates
+        function checkForUpdates() {
+            // Monitor for controlling service worker change
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                }
+            });
+
+            navigator.serviceWorker.ready.then(registration => {
+                // Check for updates on each page load
+                registration.update();
+
+                // Listen for state changes
+                registration.addEventListener('updatefound', () => {
+                    newWorker = registration.installing;
+
+                    newWorker.addEventListener('statechange', () => {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            showUpdateNotification();
+                        }
+                    });
+                });
+            });
+        }
+
+        // Show notification when update is available
+        function showUpdateNotification() {
+            const updateDiv = document.createElement('div');
+            updateDiv.id = 'update-notification';
+            updateDiv.innerHTML = `
+                <div style="position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); 
+                            background: #4CAF50; color: white; padding: 10px 20px; border-radius: 4px; 
+                            box-shadow: 0 2px 10px rgba(0,0,0,0.2); z-index: 9999; display: flex; 
+                            align-items: center; justify-content: space-between; width: 80%; max-width: 400px;">
+                    New version available! 
+                    <button onclick="updateApp()" style="margin-left: 10px; background: white; color: #4CAF50; 
+                             border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                        Update now
+                    </button>
+                </div>
+            `;
+            document.body.appendChild(updateDiv);
+        }
+
+        // Trigger the update when user clicks the button
+        function updateApp() {
+            if (newWorker) {
+                newWorker.postMessage({ action: 'skipWaiting' });
+            }
+        }
+
+        // Register service worker and handle updates
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/static/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                        checkForUpdates();
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
 </head>
 
 <body>
