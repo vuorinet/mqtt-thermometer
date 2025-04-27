@@ -20,6 +20,7 @@ body {
   flex-direction: row;
   justify-content: space-between; /* Changed from center to space-between */
   width: 100%; /* Ensure container takes full width */
+  max-width: 800px; /* Limit maximum width */
   padding: 0; /* Remove padding to maximize space */
   margin: 0 auto; /* Center the container */
 }
