@@ -23,18 +23,22 @@ jobs:
 
       - name: Blue-green deployment
         run: |
-          cp -r . /tmp/mqtt-thermometer-blue
-          cp /srv/mqtt-thermometer/*.db /tmp/mqtt-thermometer-blue
-          cp /srv/mqtt-thermometer/mqtt-thermometer.toml /tmp/mqtt-thermometer-blue
+          sudo cp /srv/mqtt-thermometer/*.db .
+          sudo cp /srv/mqtt-thermometer/mqtt-thermometer.toml .
 
-          sudo systemctl stop mqtt-thermometer.service
-          sudo rm /etc/systemd/system/mqtt-thermometer.service
+          sudo systemctl stop mqtt-thermometer.service || true
+          sudo rm /etc/systemd/system/mqtt-thermometer.service || true
           sudo rm -rf /srv/mqtt-thermometer/*
-          sudo mv /tmp/mqtt-thermometer-blue/* /srv/mqtt-thermometer/
+          sudo mv .* /srv/mqtt-thermometer/ 2>/dev/null || true
+          sudo mv * /srv/mqtt-thermometer/
 
           sudo ln -s /srv/mqtt-thermometer/mqtt-thermometer.service /etc/systemd/system/mqtt-thermometer.service
           sudo systemctl daemon-reload
           sudo systemctl enable mqtt-thermometer.service
-          sudo systemctl restart mqtt-thermometer.service
+          sudo systemctl start mqtt-thermometer.service
 
-          sudo rm /tmp/mqtt-thermometer-blue
+      - name: Cleanup workspace
+        if: always()
+        run: |
+          rm -rf $GITHUB_WORKSPACE/*
+          rm -rf $GITHUB_WORKSPACE/.??*
