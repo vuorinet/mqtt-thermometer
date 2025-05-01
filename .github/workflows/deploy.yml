@@ -1,0 +1,76 @@
+name: Build and Deploy to Raspberry Pi
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    name: Build & Upload Artifact
+    runs-on: ubuntu-latest
+    outputs:
+      artifact_path: ${{ steps.build.outputs.artifact_path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        run: |
+          curl -LsSf https://astral.sh/uv/install.sh | sh
+          echo "$HOME/.local/bin/uv" >> $GITHUB_PATH
+
+      - name: Build
+        id: build
+        run: |
+          uv sync
+          uv build
+          echo "artifact_path=dist" >> $GITHUB_OUTPUT
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mqtt-thermometer-package
+          path: |
+            dist/
+            scripts/deploy.sh
+            mqtt-thermometer.service
+
+  deploy:
+    name: Deploy to Raspberry Pi
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: cottage
+      url: https://temperature.cottage.vuorinet.net
+    concurrency: production
+    steps:
+      - name: Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: mqtt-thermometer-package
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          # Key for uploads only
+          echo "${{ secrets.UPLOAD_PRIVATE_KEY }}" > ~/.ssh/id_ed25519_upload
+          chmod 600 ~/.ssh/id_ed25519_upload
+          # Key for running deploy script only
+          echo "${{ secrets.DEPLOY_PRIVATE_KEY }}" > ~/.ssh/id_ed25519_deploy
+          chmod 600 ~/.ssh/id_ed25519_deploy
+          ssh-keyscan cottage.vuorinet.net >> ~/.ssh/known_hosts
+
+      - name: Test connectivity
+        run: |
+          nc -zv cottage.vuorinet.net 22
+
+      - name: Copy files to cottage server
+        run: |
+          scp -O -i ~/.ssh/id_ed25519_upload dist/mqtt_thermometer-* deploy@cottage.vuorinet.net:/tmp/
+          scp -O -i ~/.ssh/id_ed25519_upload scripts/deploy.sh deploy@cottage.vuorinet.net:/tmp/
+          scp -O -i ~/.ssh/id_ed25519_upload mqtt-thermometer.service deploy@cottage.vuorinet.net:/tmp/
+
+      - name: Run remote deploy script
+        run: |
+          ssh -i ~/.ssh/id_ed25519_deploy deploy@cottage.vuorinet.net

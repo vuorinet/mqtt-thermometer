@@ -2,3 +2,4 @@ mokki.db
 env/
 __pycache__/
 mqtt-thermometer.db
+mqtt_thermometer.egg-info
