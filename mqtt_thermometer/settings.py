@@ -44,6 +44,7 @@ def _get_toml_file_path() -> Path:
 
 
 class RootSettings(BaseSettings):
+    application_name: str = Field(default="Thermometer")
     mqtt_broker: MQTTBrokerSettings = Field(default=...)
     db_connection_string: str = Field(default=...)
     sources: list[SourceSettings] = Field(default=...)

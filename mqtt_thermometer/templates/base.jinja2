@@ -5,7 +5,7 @@
     <meta charset="utf-8">
     <!-- Update viewport settings for better mobile scaling -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>{% block title %}MQTT Thermometer{% endblock %}</title>
+    <title>{% block title %}{{ application_name }}{% endblock %}</title>
 
     <!-- Favicon links for various platforms -->
     <link rel="icon" type="image/x-icon" href="/static/favicon.ico">
@@ -19,8 +19,8 @@
     <!-- Essential Meta Tags for Mobile -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="application-name" content="MQTT Thermometer">
-    <meta name="apple-mobile-web-app-title" content="MQTT Thermometer">
+    <meta name="application-name" content="{{ application_name }}">
+    <meta name="apple-mobile-web-app-title" content="{{ application_name }}">
     <meta name="theme-color" content="#ffffff">
 
     <link rel="stylesheet" href="/static/styles.css">
