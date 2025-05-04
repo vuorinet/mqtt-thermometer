@@ -20,10 +20,16 @@ jobs:
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.local/bin/uv" >> $GITHUB_PATH
 
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y inkscape
+
       - name: Build
         id: build
         run: |
           uv sync
+          ./scripts/create-favicons-cottage.sh
           uv build
           echo "artifact_path=dist" >> $GITHUB_OUTPUT
 
