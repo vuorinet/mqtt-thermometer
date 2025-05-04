@@ -241,9 +241,14 @@ async def favicon():
 @app.get("/site.webmanifest")
 @app.get("/static/manifest.json")
 @app.get("/static/site.webmanifest")
-async def manifest():
-    return FileResponse(
-        Path(__file__).parent / "static" / "site.webmanifest",
+async def manifest(request: Request):
+    static_templates = Jinja2Templates(directory=Path(__file__).parent / "static")
+    template = static_templates.get_template("site.webmanifest")
+    content = template.render(
+        {"application_name": settings.application_name, "request": request}
+    )
+    return HTMLResponse(
+        content=content,
         media_type="application/manifest+json",
     )
 

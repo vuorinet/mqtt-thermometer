@@ -1,6 +1,6 @@
 {
-    "name": "MQTT Thermometer",
-    "short_name": "Thermometer",
+    "name": "{{ application_name }}",
+    "short_name": "{{ application_name }}",
     "icons": [
         {
             "src": "/static/android-chrome-192x192.png",
