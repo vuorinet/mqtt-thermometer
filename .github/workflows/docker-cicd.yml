@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - master
-  pull_request:
-    branches:
-      - master
 
 permissions:
   contents: read
@@ -110,7 +107,7 @@ jobs:
 
   deploy-cottage:
     name: Deploy to Raspberry Pi Cottage
-    needs: build  # Back to parallel deployment
+    needs: build
     if: github.ref == 'refs/heads/master'
     runs-on: [self-hosted, Linux, ARM64, raspi-cottage]
     environment:
