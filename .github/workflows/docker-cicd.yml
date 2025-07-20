@@ -41,9 +41,6 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch
-            type=ref,event=pr
-            type=sha,prefix=sha-
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Build and push Docker image
@@ -58,26 +55,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Export image as tar for self-hosted runners
-        if: github.ref == 'refs/heads/master'
-        run: |
-          # Pull the image we just built
-          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
-
-          # Save as tar file
-          docker save ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest -o mqtt-thermometer-latest.tar
-
-          # Compress for faster transfer
-          gzip mqtt-thermometer-latest.tar
-
-      - name: Upload Docker image artifact
-        if: github.ref == 'refs/heads/master'
-        uses: actions/upload-artifact@v4
-        with:
-          name: docker-image
-          path: mqtt-thermometer-latest.tar.gz
-          retention-days: 7
-
   deploy-home:
     name: Deploy to Raspberry Pi Home
     needs: build
@@ -87,12 +64,14 @@ jobs:
       name: home
       url: http://192.168.1.x:8000
     steps:
-      - name: Download Docker image
-        uses: actions/download-artifact@v4
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
         with:
-          name: docker-image
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Load and run Docker container
+      - name: Deploy Docker container
         run: |
           # Navigate to deployment directory
           cd /srv/mqtt-thermometer
@@ -100,18 +79,17 @@ jobs:
           # Stop existing services
           docker-compose down || true
 
-          # Load new image
-          gunzip ~/mqtt-thermometer-latest.tar.gz
-          docker load -i ~/mqtt-thermometer-latest.tar
+          # Clean up old/unused images on Pi
+          docker image prune -f
 
-          # Tag the loaded image to match docker-compose expectation
+          # Pull latest image
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+
+          # Tag the image to match docker-compose expectation
           docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest ghcr.io/vuorinet/mqtt-thermometer:latest
 
           # Start services with new image
           docker-compose up -d
-
-          # Clean up
-          rm ~/mqtt-thermometer-latest.tar
 
       - name: Verify deployment
         run: |
@@ -134,12 +112,14 @@ jobs:
       name: cottage
       url: http://cottage.local:8000
     steps:
-      - name: Download Docker image
-        uses: actions/download-artifact@v4
+      - name: Log in to Container Registry
+        uses: docker/login-action@v3
         with:
-          name: docker-image
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Load and run Docker container
+      - name: Deploy Docker container
         run: |
           # Navigate to deployment directory
           cd /srv/mqtt-thermometer
@@ -147,18 +127,17 @@ jobs:
           # Stop existing services
           docker-compose down || true
 
-          # Load new image
-          gunzip ~/mqtt-thermometer-latest.tar.gz
-          docker load -i ~/mqtt-thermometer-latest.tar
+          # Clean up old/unused images on Pi
+          docker image prune -f
 
-          # Tag the loaded image to match docker-compose expectation
+          # Pull latest image
+          docker pull ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest
+
+          # Tag the image to match docker-compose expectation
           docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest ghcr.io/vuorinet/mqtt-thermometer:latest
 
           # Start services with new image
           docker-compose up -d
-
-          # Clean up
-          rm ~/mqtt-thermometer-latest.tar
 
       - name: Verify deployment
         run: |
