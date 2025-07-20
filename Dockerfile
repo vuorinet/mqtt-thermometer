@@ -1,7 +1,7 @@
 # Multi-stage build for ARM64 Raspberry Pi deployment
 FROM --platform=linux/arm64 python:3.13-slim as builder
 
-# Install system dependencies
+# Install system dependencies (this layer changes rarely)
 RUN apt-get update && apt-get install -y \
     gcc \
     inkscape \
@@ -9,20 +9,24 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install uv
+# Install uv (this layer changes rarely)
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 # Set working directory
 WORKDIR /app
 
-# Copy project files
+# Copy dependency files first (changes less frequently than code)
 COPY pyproject.toml uv.lock ./
-COPY mqtt_thermometer/ ./mqtt_thermometer/
-COPY scripts/ ./scripts/
 
 # Create virtual environment and install dependencies
-RUN uv sync --no-dev
+# This layer will be cached as long as pyproject.toml and uv.lock don't change
+RUN --mount=type=cache,target=/root/.cache/uv \
+    uv sync --no-dev
+
+# Copy application code (changes most frequently)
+COPY mqtt_thermometer/ ./mqtt_thermometer/
+COPY scripts/ ./scripts/
 
 # Generate favicons (cottage version)
 RUN uv run ./scripts/create-favicons-cottage.sh
