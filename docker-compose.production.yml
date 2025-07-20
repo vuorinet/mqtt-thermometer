@@ -1,0 +1,25 @@
+version: "3.8"
+
+services:
+  mqtt-thermometer:
+    image: ghcr.io/vuorinet/mqtt-thermometer:latest
+    container_name: mqtt-thermometer
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./config/mqtt-thermometer.toml:/app/config/mqtt-thermometer.toml:ro
+      - mqtt_data:/app/data
+    environment:
+      - MQTT_THERMOMETER_CONFIG_PATH=/app/config/mqtt-thermometer.toml
+      - MQTT_THERMOMETER_DB_PATH=/app/data/mqtt-thermometer.db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/temperatures"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  mqtt_data:
+    driver: local
