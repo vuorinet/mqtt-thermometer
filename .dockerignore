@@ -1,0 +1,54 @@
+# Git and version control
+.git
+.gitignore
+.github/workflows/deploy.yml
+backup/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# Virtual environments
+env/
+venv/
+.venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local files
+*.db
+*.log
+mokki.db
+mqtt-thermometer.db
+
+# Documentation
+README.md
+DOCKER.md
+LICENSE
+
+# Development files
+docker-compose.yml
+*.tar
+*.tar.gz
+
+# Configuration (will be mounted as volumes)
+mqtt-thermometer.toml
+config/
+
+# Data directory (will be mounted as volume)  
+data/

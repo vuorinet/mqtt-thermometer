@@ -27,6 +27,15 @@ class SourceSettings(BaseSettings):
 
 
 def _get_toml_file_path() -> Path:
+    # Check if config path is provided via environment variable (for Docker)
+    env_config_path = (
+        Path.cwd() / "config" / "mqtt-thermometer.toml"
+        if Path.cwd().name == "app"
+        else None
+    )
+    if env_config_path and env_config_path.exists():
+        return env_config_path
+
     toml_file_name = "mqtt-thermometer.toml"
     file_path = Path(__file__).parent
     while file_path != file_path.root:
@@ -46,11 +55,14 @@ def _get_toml_file_path() -> Path:
 class RootSettings(BaseSettings):
     application_name: str = Field(default="Thermometer")
     mqtt_broker: MQTTBrokerSettings = Field(default=...)
-    db_connection_string: str = Field(default=...)
+    db_connection_string: str = Field(
+        default="data/mqtt-thermometer.db"
+    )  # Default to data directory for Docker
     sources: list[SourceSettings] = Field(default=...)
 
     model_config = SettingsConfigDict(
         toml_file=_get_toml_file_path(),
+        env_prefix="MQTT_THERMOMETER_",
     )
 
     @classmethod

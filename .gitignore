@@ -3,3 +3,11 @@ env/
 __pycache__/
 mqtt-thermometer.db
 mqtt_thermometer.egg-info
+
+# Generated favicon files (created during Docker build)
+mqtt_thermometer/static/favicon-16x16.png
+mqtt_thermometer/static/favicon-32x32.png
+mqtt_thermometer/static/favicon.ico
+mqtt_thermometer/static/apple-touch-icon.png
+mqtt_thermometer/static/android-chrome-192x192.png
+mqtt_thermometer/static/android-chrome-512x512.png
