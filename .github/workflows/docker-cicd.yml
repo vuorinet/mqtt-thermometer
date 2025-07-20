@@ -64,7 +64,7 @@ jobs:
     name: Deploy to Raspberry Pi Home
     needs: build
     if: github.ref == 'refs/heads/master'
-    runs-on: [self-hosted, raspi-home]
+    runs-on: [self-hosted, Linux, ARM64, raspi-home]
     environment:
       name: home
       url: http://192.168.1.x:8000
@@ -112,7 +112,7 @@ jobs:
     name: Deploy to Raspberry Pi Cottage
     needs: build  # Back to parallel deployment
     if: github.ref == 'refs/heads/master'
-    runs-on: [self-hosted, raspi-cottage]
+    runs-on: [self-hosted, Linux, ARM64, raspi-cottage]
     environment:
       name: cottage
       url: http://cottage.local:8000
