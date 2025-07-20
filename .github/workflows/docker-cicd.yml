@@ -78,8 +78,9 @@ jobs:
 
       - name: Deploy Docker container
         run: |
-          # Ensure deployment directory exists
+          # Ensure deployment directory exists with proper permissions
           sudo mkdir -p /srv/mqtt-thermometer/data
+          sudo chown -R 1000:1000 /srv/mqtt-thermometer/data
 
           # Copy production Docker Compose file
           sudo cp docker-compose.production.yml /srv/mqtt-thermometer/docker-compose.yml
@@ -133,8 +134,9 @@ jobs:
 
       - name: Deploy Docker container
         run: |
-          # Ensure deployment directory exists
+          # Ensure deployment directory exists with proper permissions
           sudo mkdir -p /srv/mqtt-thermometer/data
+          sudo chown -R 1000:1000 /srv/mqtt-thermometer/data
 
           # Copy production Docker Compose file
           sudo cp docker-compose.production.yml /srv/mqtt-thermometer/docker-compose.yml

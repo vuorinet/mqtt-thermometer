@@ -4,6 +4,7 @@ import threading
 from contextlib import contextmanager
 from datetime import datetime
 from decimal import Decimal
+from pathlib import Path
 
 from mqtt_thermometer.settings import settings
 
@@ -37,6 +38,10 @@ sqlite3.register_converter("DECTEXT", convert_decimal)
 def get_database_connection():
     connection = None
     try:
+        # Ensure the directory exists for the database file
+        db_path = Path(settings.db_connection_string)
+        db_path.parent.mkdir(parents=True, exist_ok=True)
+
         connection = sqlite3.connect(
             settings.db_connection_string, detect_types=sqlite3.PARSE_DECLTYPES
         )

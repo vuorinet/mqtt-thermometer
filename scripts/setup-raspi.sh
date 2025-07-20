@@ -11,8 +11,9 @@ fi
 
 echo "Setting up Raspberry Pi: $PI_NAME"
 
-# Create directory structure
+# Create directory structure with proper permissions
 sudo mkdir -p /srv/mqtt-thermometer/data
+sudo chown -R 1000:1000 /srv/mqtt-thermometer/data
 sudo chown -R pi:pi /srv/mqtt-thermometer
 
 # Copy appropriate configuration
