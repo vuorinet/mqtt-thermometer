@@ -1,18 +1,18 @@
+import asyncio
+import logging
+import time
 from datetime import UTC, datetime
 from decimal import Decimal
-import logging
-from mqtt_thermometer import database
-import time
-import asyncio
+
 import paho.mqtt.client as mqtt
 
+from mqtt_thermometer import database
 from mqtt_thermometer.settings import settings
 
 loop = asyncio.get_event_loop()
 last_timestamp: datetime = datetime.now(tz=UTC).replace(second=0, microsecond=0)
 source_temperatures: dict[str, list[Decimal]] = {}
 
-connection = None
 client = None
 
 main_queue: asyncio.Queue | None = None
@@ -28,7 +28,6 @@ def on_connect(client, userdata, flags, reason_code, properties):
 
 
 def on_message(client, userdata, message):
-    assert connection
     global last_timestamp, source_temperatures
 
     temperature = Decimal(message.payload.decode())
@@ -52,17 +51,16 @@ def on_message(client, userdata, message):
             source,
             average_temperature,
         )
-        database.save_temperature(
-            connection, source, last_timestamp, average_temperature
-        )
+        success = database.save_temperature(source, last_timestamp, average_temperature)
+        if not success:
+            logger.error("Failed to save temperature for source: %s", source)
     source_temperatures.clear()
     last_timestamp = timestamp
 
 
 def poll_mqtt_messages(queue: asyncio.Queue):
-    global connection, client, main_queue
+    global client, main_queue
     main_queue = queue
-    connection = database.get_database_connection()
 
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
     client.on_connect = on_connect
@@ -81,8 +79,6 @@ def poll_mqtt_messages(queue: asyncio.Queue):
 
     client.loop_forever()
 
-    connection.close()
-
 
 def stop_polling():
     assert client
@@ -90,4 +86,7 @@ def stop_polling():
 
 
 if __name__ == "__main__":
-    poll_mqtt_messages()
+    import asyncio
+
+    queue = asyncio.Queue()
+    poll_mqtt_messages(queue)

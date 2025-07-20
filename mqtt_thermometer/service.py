@@ -5,11 +5,9 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
-from sqlite3 import Connection
 from threading import Thread
-from typing import Annotated, AsyncGenerator
 
-from fastapi import Depends, FastAPI, Request, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, Request, WebSocket, WebSocketDisconnect
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -138,14 +136,6 @@ async def root_page(request: Request):
     return {"version": APP_VERSION, "application_name": settings.application_name}
 
 
-async def get_db() -> AsyncGenerator[Connection, None]:
-    db = database.get_database_connection()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 def _get_empty_temperature_data(
     since: datetime, until: datetime
 ) -> dict[datetime, Decimal | None]:
@@ -158,9 +148,7 @@ def _get_empty_temperature_data(
 
 
 @app.get("/temperatures")
-async def get_temperatures(
-    request: Request, database_connection: Annotated[Connection, Depends(get_db)]
-):  # noqa: ARG001
+async def get_temperatures(request: Request):  # noqa: ARG001
     def _get_temperature_data(
         source: str, calibration_multiplier: Decimal, calibration_offset: Decimal
     ) -> dict[datetime, Decimal | None]:
@@ -170,7 +158,6 @@ async def get_temperatures(
         last_temperature = None
         temperature_data = _get_empty_temperature_data(since=since, until=until)
         for _, timestamp, temperature in database.get_temperatures(
-            database_connection,
             source=source,
             since=since,
         ):
