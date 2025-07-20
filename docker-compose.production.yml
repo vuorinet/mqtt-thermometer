@@ -7,7 +7,7 @@ services:
       - "8000:8000"
     volumes:
       - ./mqtt-thermometer.toml:/app/config/mqtt-thermometer.toml:ro
-      - ./mqtt-thermometer.db:/app/data/mqtt-thermometer.db
+      - ./data:/app/data
     environment:
       - MQTT_THERMOMETER_CONFIG_PATH=/app/config/mqtt-thermometer.toml
       - MQTT_THERMOMETER_DB_PATH=/app/data/mqtt-thermometer.db

@@ -12,7 +12,7 @@ fi
 echo "Setting up Raspberry Pi: $PI_NAME"
 
 # Create directory structure
-sudo mkdir -p /srv/mqtt-thermometer
+sudo mkdir -p /srv/mqtt-thermometer/data
 sudo chown -R pi:pi /srv/mqtt-thermometer
 
 # Copy appropriate configuration
@@ -33,7 +33,7 @@ cp docker-compose.production.yml /srv/mqtt-thermometer/docker-compose.yml
 
 echo "Setup complete for $PI_NAME!"
 echo "Configuration file: /srv/mqtt-thermometer/mqtt-thermometer.toml"
-echo "Database file: /srv/mqtt-thermometer/mqtt-thermometer.db (will be created on first run)"
+echo "Database file: /srv/mqtt-thermometer/data/mqtt-thermometer.db (will be created on first run)"
 echo "Docker Compose file: /srv/mqtt-thermometer/docker-compose.yml"
 echo ""
 echo "Next steps:"

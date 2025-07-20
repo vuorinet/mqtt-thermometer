@@ -79,15 +79,13 @@ jobs:
       - name: Deploy Docker container
         run: |
           # Ensure deployment directory exists
-          sudo mkdir -p /srv/mqtt-thermometer
+          sudo mkdir -p /srv/mqtt-thermometer/data
 
           # Copy production Docker Compose file
           sudo cp docker-compose.production.yml /srv/mqtt-thermometer/docker-compose.yml
 
           # Copy home-specific configuration
-          sudo cp config/mqtt-thermometer-home.toml /srv/mqtt-thermometer/mqtt-thermometer.toml
-
-          # Navigate to deployment directory
+          sudo cp config/mqtt-thermometer-home.toml /srv/mqtt-thermometer/mqtt-thermometer.toml          # Navigate to deployment directory
           cd /srv/mqtt-thermometer
 
           # Stop existing services
@@ -136,15 +134,13 @@ jobs:
       - name: Deploy Docker container
         run: |
           # Ensure deployment directory exists
-          sudo mkdir -p /srv/mqtt-thermometer
+          sudo mkdir -p /srv/mqtt-thermometer/data
 
           # Copy production Docker Compose file
           sudo cp docker-compose.production.yml /srv/mqtt-thermometer/docker-compose.yml
 
           # Copy cottage-specific configuration
-          sudo cp config/mqtt-thermometer-cottage.toml /srv/mqtt-thermometer/mqtt-thermometer.toml
-
-          # Navigate to deployment directory
+          sudo cp config/mqtt-thermometer-cottage.toml /srv/mqtt-thermometer/mqtt-thermometer.toml          # Navigate to deployment directory
           cd /srv/mqtt-thermometer
 
           # Stop existing services
