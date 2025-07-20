@@ -17,34 +17,51 @@ The project does not rely on NPM or NodeJS 💪. Instead, it utilizes htmx (http
 ## Run locally
 
 ```bash
-python -m venv env
-source env/bin/activate
-pip install -r requirements.txt
-sh start-service.sh
+uv sync
+uv run uvicorn mqtt_thermometer.service:app --reload
 ```
 
 --> Navigate to http://localhost:8000.
 
-## Install on Debian based Linux server
+## Deploy on Raspberry Pi
 
-For example Raspberry Pi.
+This project uses Docker containers with automated CI/CD deployment.
+
+### Initial Setup
+
+1. **Set up the Raspberry Pi:**
+
+   ```bash
+   # Clone the repository
+   git clone https://github.com/vuorinet/mqtt-thermometer.git
+   cd mqtt-thermometer
+
+   # Run setup script (choose 'home' or 'cottage')
+   ./scripts/setup-raspi.sh home
+   ```
+
+2. **Configure MQTT settings:**
+   Edit `/srv/mqtt-thermometer/config/mqtt-thermometer.toml` with your MQTT broker details.
+
+3. **Set up GitHub Actions self-hosted runner:**
+   - Follow GitHub's instructions to install the runner
+   - Use labels: `[self-hosted, Linux, ARM64, raspi-home]` or `raspi-cottage`
+
+### Automated Deployment
+
+Push to the `master` branch to trigger automatic deployment to all configured Raspberry Pi devices.
+
+### Manual Operations
 
 ```bash
-mkdir -p /srv/mqtt-thermometer
 cd /srv/mqtt-thermometer
-git clone https://github.com/jvuori/mqtt-thermometer.git .
-python -m venv env
-source env/bin/activate
-pip install -r requirements.txt
+
+# Start services
+docker compose up -d
+
+# Stop services
+docker compose down
+
+# View logs
+docker compose logs -f
 ```
-
-Configure `mqtt-thermometer.toml` file.
-
-Install and start service:
-
-```bash
-sh setup-service.sh
-systemctl start mqtt-thermometer
-```
-
-Note: `mqtt-thermometer.service` assumes that Mosquitto is running on the same server. Adjust the file accordingly if you are running it on a different server.

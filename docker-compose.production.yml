@@ -1,5 +1,3 @@
-version: "3.8"
-
 services:
   mqtt-thermometer:
     image: ghcr.io/vuorinet/mqtt-thermometer:latest
@@ -8,8 +6,8 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./config/mqtt-thermometer.toml:/app/config/mqtt-thermometer.toml:ro
-      - mqtt_data:/app/data
+      - ./mqtt-thermometer.toml:/app/config/mqtt-thermometer.toml:ro
+      - ./mqtt-thermometer.db:/app/data/mqtt-thermometer.db
     environment:
       - MQTT_THERMOMETER_CONFIG_PATH=/app/config/mqtt-thermometer.toml
       - MQTT_THERMOMETER_DB_PATH=/app/data/mqtt-thermometer.db
@@ -19,7 +17,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
-volumes:
-  mqtt_data:
-    driver: local

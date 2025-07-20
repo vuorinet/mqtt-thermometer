@@ -115,15 +115,15 @@ RUN pip install package_name  # DON'T DO THIS
 
 ### Deployment Scripts
 
-- `scripts/setup-raspi.sh`: Raspberry Pi setup automation
-- `Dockerfile`: Multi-stage ARM64 container build
+- `scripts/setup-raspi.sh`: Raspberry Pi setup automation (uses centralized production compose file)
+- `docker-compose.production.yml`: Production Docker Compose configuration
 - `.github/workflows/docker-cicd.yml`: CI/CD pipeline
 
 ### Docker Compose Files
 
-- `docker-compose.yml`: Generated per Pi with location-specific configuration
+- `docker-compose.yml`: Development/local build configuration
+- `docker-compose.production.yml`: Production deployment configuration (used by CI/CD and setup script)
 - Deployed to `/srv/mqtt-thermometer/docker-compose.yml` on each Pi
-- Includes health checks and restart policies
 
 ### Code Organization
 
