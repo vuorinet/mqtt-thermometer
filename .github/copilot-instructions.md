@@ -84,10 +84,21 @@ def save_temperature(...) -> bool:
         return False
 ```
 
+### Package Management
+
+```dockerfile
+# ALWAYS use uv for package installation in Dockerfiles
+RUN uv pip install --system package_name
+
+# NEVER use pip directly in containers
+RUN pip install package_name  # DON'T DO THIS
+```
+
 ### Docker Considerations
 
 - Use multi-stage builds for smaller images
 - ARM64 platform targeting for Raspberry Pi
+- **Use uv for all package management**: Replace pip with `uv pip install --system` in Dockerfiles
 - Volume mounts for configuration and data persistence
 - Non-root user for security
 - Health checks for monitoring
@@ -171,6 +182,7 @@ uv run pytest                       # Run tests
 
 - This project avoids npm/Node.js complexity
 - Uses modern Python patterns (uv, Pydantic, async/await)
+- **Always use uv for package management**: Never use pip directly, use `uv pip install --system` in Docker
 - Prioritizes simplicity and reliability for IoT deployment
 - Configuration is environment-specific but code is shared
 - **Docker Compose over systemd**: Use Docker Compose for container management instead of systemd services

@@ -36,7 +36,12 @@ FROM --platform=linux/arm64 python:3.13-slim
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y \
     sqlite3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install uv
+RUN curl -LsSf https://astral.sh/uv/install.sh | sh
+ENV PATH="/root/.local/bin:$PATH"
 
 # Create app user
 RUN useradd --create-home --shell /bin/bash app
@@ -47,8 +52,8 @@ WORKDIR /app
 # Copy built package from builder stage
 COPY --from=builder /app/dist/*.whl /tmp/
 
-# Install the application
-RUN pip install /tmp/*.whl uvicorn && \
+# Install the application using uv
+RUN uv pip install --system /tmp/*.whl uvicorn && \
     rm /tmp/*.whl
 
 # Create necessary directories
