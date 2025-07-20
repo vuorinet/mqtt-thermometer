@@ -79,7 +79,7 @@ jobs:
           cd /srv/mqtt-thermometer
 
           # Stop existing services
-          docker-compose down || true
+          docker compose down || true
 
           # Clean up old/unused images on Pi
           docker image prune -f
@@ -91,7 +91,7 @@ jobs:
           docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest ghcr.io/vuorinet/mqtt-thermometer:latest
 
           # Start services with new image
-          docker-compose up -d
+          docker compose up -d
 
       - name: Verify deployment
         run: |
@@ -100,7 +100,7 @@ jobs:
 
           # Check if container is running
           cd /srv/mqtt-thermometer
-          docker-compose ps | grep mqtt-thermometer
+          docker compose ps | grep mqtt-thermometer
 
           # Health check
           curl -f http://localhost:8000/temperatures || exit 1
@@ -127,7 +127,7 @@ jobs:
           cd /srv/mqtt-thermometer
 
           # Stop existing services
-          docker-compose down || true
+          docker compose down || true
 
           # Clean up old/unused images on Pi
           docker image prune -f
@@ -139,7 +139,7 @@ jobs:
           docker tag ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}:latest ghcr.io/vuorinet/mqtt-thermometer:latest
 
           # Start services with new image
-          docker-compose up -d
+          docker compose up -d
 
       - name: Verify deployment
         run: |
@@ -148,7 +148,7 @@ jobs:
 
           # Check if container is running
           cd /srv/mqtt-thermometer
-          docker-compose ps | grep mqtt-thermometer
+          docker compose ps | grep mqtt-thermometer
 
           # Health check
           curl -f http://localhost:8000/temperatures || exit 1
