@@ -2,7 +2,7 @@
 db_connection_string = "/app/data/mqtt-thermometer.db"
 
 [mqtt_broker]
-host = "192.168.1.12"  # Update with your home MQTT broker IP
+host = "raspi.home.vuorinet.net"
 port = 1883
 
 [[sources]]
@@ -22,7 +22,7 @@ border_color = "#00eeee"
 background_color = "#00ddee"
 
 [[sources]]
-label = "Terassi (koti)"
+label = "Terassi"
 source = "koti/terassi/temperature"
 calibration_multiplier = 1
 calibration_offset = -0.25
@@ -30,7 +30,7 @@ border_color = "#dd0000"
 background_color = "#ff0000"
 
 [[sources]]
-label = "Sauna (koti)"
+label = "Sauna"
 source = "koti/sauna/temperature"
 border_color = "#dddd00"
 background_color = "#ffff00"
