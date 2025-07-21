@@ -4,6 +4,23 @@ on:
   push:
     branches:
       - master
+    paths:
+      # Application code that affects the Docker image
+      - "mqtt_thermometer/**"
+      - "scripts/**"
+      # Docker and deployment configuration
+      - "Dockerfile"
+      - "docker-compose*.yml"
+      - ".github/workflows/docker-cicd.yml"
+      # Dependencies and project configuration
+      - "pyproject.toml"
+      - "uv.lock"
+      # Deployment configurations
+      - "config/mqtt-thermometer-home.toml"
+      - "config/mqtt-thermometer-cottage.toml"
+      - "scripts/setup-raspi.sh"
+  # Allow manual workflow dispatch for testing
+  workflow_dispatch:
 
 permissions:
   contents: read
