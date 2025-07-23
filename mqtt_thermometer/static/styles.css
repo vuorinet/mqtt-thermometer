@@ -97,7 +97,7 @@ body {
     height: 100vh; /* Fallback */
     height: calc(var(--vh, 1vh) * 100); /* Use custom property */
     height: 100dvh; /* Preferred */
-    padding: 2px 0 0 0 !important; /* Minimal top padding */
+    padding: 2px 5px 0 5px !important; /* Minimal padding with small horizontal margins */
   }
 
   .heading-container {
@@ -125,9 +125,9 @@ body {
   }
 
   .chart-container {
-    height: 25vh !important; /* Very conservative for portrait mode */
-    height: calc(var(--vh, 1vh) * 25) !important;
-    height: 25dvh !important;
+    height: 45vh !important; /* Increased from 25vh for better usability */
+    height: calc(var(--vh, 1vh) * 45) !important;
+    height: 45dvh !important;
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -148,7 +148,7 @@ body {
     height: 100vh; /* Fallback */
     height: calc(var(--vh, 1vh) * 100); /* Use custom property */
     height: 100dvh; /* Preferred */
-    padding: 2px 0 0 0 !important; /* Minimal top padding */
+    padding: 2px 5px 0 5px !important; /* Minimal padding with small horizontal margins */
   }
 
   .heading-container {
@@ -176,11 +176,11 @@ body {
   }
 
   .chart-container {
-    height: 30vh !important; /* Fallback for older browsers */
+    height: 50vh !important; /* Increased from 30vh for better usability */
     height: calc(
-      var(--vh, 1vh) * 30
+      var(--vh, 1vh) * 50
     ) !important; /* Use custom property for consistent height */
-    height: 30dvh !important; /* Very conservative to ensure x-axis is always visible */
+    height: 50dvh !important; /* Better balance between content and x-axis visibility */
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -212,9 +212,9 @@ body {
   }
 
   .chart-container {
-    height: 50vh !important; /* More space available in landscape */
-    height: calc(var(--vh, 1vh) * 50) !important;
-    height: 50dvh !important;
+    height: 60vh !important; /* Increased for landscape mode - more space available */
+    height: calc(var(--vh, 1vh) * 60) !important;
+    height: 60dvh !important;
   }
 }
 
@@ -243,9 +243,9 @@ body {
   }
 
   .chart-container {
-    height: 50vh !important; /* More space available in landscape */
-    height: calc(var(--vh, 1vh) * 50) !important;
-    height: 50dvh !important;
+    height: 60vh !important; /* Increased for landscape mode - more space available */
+    height: calc(var(--vh, 1vh) * 60) !important;
+    height: 60dvh !important;
   }
 }
 
@@ -273,7 +273,7 @@ body.landscape-mode .location-title {
 }
 
 body.landscape-mode .chart-container {
-  height: 50vh !important; /* More space available in landscape */
-  height: calc(var(--vh, 1vh) * 50) !important;
-  height: 50dvh !important;
+  height: 60vh !important; /* Increased for landscape mode - more space available */
+  height: calc(var(--vh, 1vh) * 60) !important;
+  height: 60dvh !important;
 }
