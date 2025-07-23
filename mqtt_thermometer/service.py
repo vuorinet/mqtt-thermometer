@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
@@ -43,6 +44,11 @@ legend_data: dict[str, LegendData] = {
     for source in settings.sources
 }
 
+# Track last chart temperature values to detect significant changes
+last_chart_temperatures: dict[str, Decimal | None] = {
+    source.label: None for source in settings.sources
+}
+
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
 htmx_init(templates=templates)
 
@@ -51,11 +57,193 @@ def _get_legends_element():
     return templates.get_template("legends.jinja2").render({"legend_data": legend_data})
 
 
+def _get_temperature_data_for_source(
+    source: str,
+    calibration_multiplier: Decimal,
+    calibration_offset: Decimal,
+    for_json: bool = False,
+) -> dict[datetime, Decimal | None] | dict[str, float | None]:
+    """Get temperature data for a specific source - shared logic for chart and websocket updates."""
+    current_time = datetime.now(tz=UTC).replace(second=0, microsecond=0)
+    until = current_time  # Include the current minute in the range
+    since = until - timedelta(hours=24)
+
+    last_temperature = None
+    temperature_data = _get_empty_temperature_data(since=since, until=until)
+    for _, timestamp, temperature in database.get_temperatures_cached(
+        source=source,
+        since=since,
+    ):
+        temperature = Decimal(temperature) * calibration_multiplier + calibration_offset
+        MAX_STEP = Decimal("0.5")
+        if last_temperature is not None:
+            if temperature - last_temperature > MAX_STEP:
+                temperature = last_temperature + MAX_STEP
+            elif temperature - last_temperature < -MAX_STEP:
+                temperature = last_temperature - MAX_STEP
+        last_temperature = temperature
+        time_index = datetime.fromisoformat(timestamp).astimezone()
+        if time_index in temperature_data:
+            temperature_data[time_index] = temperature
+
+    # Enhanced interpolation to handle larger gaps (up to 10 minutes)
+    MAX_GAP_MINUTES = 10
+    timestamps = list(temperature_data.keys())
+    values = list(temperature_data.values())
+
+    for i in range(len(values)):
+        if values[i] is None:
+            # Find the nearest non-None values before and after this position
+            prev_value = None
+            prev_index = None
+            next_value = None
+            next_index = None
+
+            # Look backwards for the previous non-None value
+            for j in range(i - 1, -1, -1):
+                if values[j] is not None:
+                    prev_value = values[j]
+                    prev_index = j
+                    break
+
+            # Look forwards for the next non-None value
+            for j in range(i + 1, len(values)):
+                if values[j] is not None:
+                    next_value = values[j]
+                    next_index = j
+                    break
+
+            # Interpolate if we have both previous and next values and gap is not too large
+            if (
+                prev_value is not None
+                and next_value is not None
+                and prev_index is not None
+                and next_index is not None
+                and next_index - prev_index <= MAX_GAP_MINUTES
+            ):
+                # Linear interpolation
+                gap_size = next_index - prev_index
+                position_in_gap = i - prev_index
+                interpolated_value = prev_value + (next_value - prev_value) * (
+                    Decimal(position_in_gap) / Decimal(gap_size)
+                )
+                temperature_data[timestamps[i]] = interpolated_value
+
+    # Add the very latest temperature reading from legend_data if available
+    # This shows the most recent individual reading even before it's saved to database
+    # Note: legend_data already contains calibrated temperatures from process_mqtt_queue
+    current_time = datetime.now(tz=UTC).replace(second=0, microsecond=0)
+    for legend_source, legend in legend_data.items():
+        # Find matching source by comparing with source labels
+        for settings_source in settings.sources:
+            if (
+                settings_source.source == source
+                and settings_source.label == legend_source
+                and legend.temperature is not None
+            ):
+                # Use the already calibrated temperature from legend_data
+                latest_temp = legend.temperature
+                # Apply the same smoothing logic
+                if last_temperature is not None:
+                    MAX_STEP = Decimal("0.5")
+                    if latest_temp - last_temperature > MAX_STEP:
+                        latest_temp = last_temperature + MAX_STEP
+                    elif latest_temp - last_temperature < -MAX_STEP:
+                        latest_temp = last_temperature - MAX_STEP
+
+                # Always update the current minute with the latest value
+                temperature_data[current_time] = latest_temp
+                last_temperature = latest_temp  # Update for next iteration
+                break
+
+    # Convert to JSON-serializable format if requested
+    if for_json:
+        return {
+            timestamp.isoformat(): float(temp) if temp is not None else None
+            for timestamp, temp in temperature_data.items()
+        }
+
+    return temperature_data
+
+
+def _should_update_chart() -> bool:
+    """Check if chart should be updated based on significant temperature changes."""
+    SIGNIFICANT_CHANGE_THRESHOLD = Decimal("0.05")  # 0.05°C threshold for chart updates
+
+    for source in settings.sources:
+        current_temp = legend_data[source.label].temperature
+        last_chart_temp = last_chart_temperatures[source.label]
+
+        if current_temp is not None and last_chart_temp is not None:
+            temp_diff = abs(current_temp - last_chart_temp)
+            if temp_diff >= SIGNIFICANT_CHANGE_THRESHOLD:
+                logger.info(
+                    f"Chart update triggered for {source.label}: {last_chart_temp}°C -> {current_temp}°C (diff: {temp_diff}°C)"
+                )
+                return True
+        elif current_temp is not None and last_chart_temp is None:
+            # First temperature reading for this source
+            logger.info(
+                f"Chart update triggered for {source.label}: First reading {current_temp}°C"
+            )
+            return True
+        elif current_temp is None and last_chart_temp is not None:
+            # Temperature became unavailable
+            logger.info(
+                f"Chart update triggered for {source.label}: Temperature became unavailable"
+            )
+            return True
+
+    return False
+
+
 async def _broadcast_temperature_data():
-    text = _get_legends_element()
+    """Broadcast legend updates and optionally chart updates to websockets."""
+    legends_html = _get_legends_element()
+
+    # Check if we need to update the chart
+    should_update_chart = _should_update_chart()
+
+    if should_update_chart:
+        # Get full chart data
+        chart_data = {
+            "datasets": [
+                {
+                    "data": temperature_data,
+                    "label": source.label,
+                    "borderColor": source.border_color.as_hex("long"),
+                    "backgroundColor": source.background_color.as_hex("long"),
+                    "borderJoinStyle": "round",
+                }
+                for source in settings.sources
+                if (
+                    temperature_data := _get_temperature_data_for_source(
+                        source=source.source,
+                        calibration_multiplier=source.calibration_multiplier,
+                        calibration_offset=source.calibration_offset,
+                        for_json=True,
+                    )
+                )
+            ],
+        }
+
+        # Update last chart temperatures for next comparison
+        for source in settings.sources:
+            last_chart_temperatures[source.label] = legend_data[
+                source.label
+            ].temperature
+
+        # Send combined update with both legends and chart data
+        message = json.dumps(
+            {"type": "combined", "legends": legends_html, "chart": chart_data}
+        )
+    else:
+        # Send only legend update
+        message = json.dumps({"type": "legends", "legends": legends_html})
+
     for websocket in ws_connections.copy():
         try:
-            await websocket.send_text(text)
+            await websocket.send_text(message)
         except WebSocketDisconnect:
             logger.warning("Failed to send temperature data to websocket")
             if websocket in ws_connections:
@@ -77,6 +265,17 @@ async def reset_inactive_temperatures():
                     last_updated=datetime.now(tz=UTC),
                 )
         await _broadcast_temperature_data()
+
+
+def _get_empty_temperature_data(
+    since: datetime, until: datetime
+) -> dict[datetime, Decimal | None]:
+    empty_temperature_data = {}
+    timestamp = since
+    while timestamp <= until:
+        empty_temperature_data[timestamp] = None
+        timestamp += timedelta(minutes=1)
+    return empty_temperature_data
 
 
 async def process_mqtt_queue(queue):
@@ -129,7 +328,40 @@ async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
     ws_connections.add(websocket)
     try:
-        await websocket.send_text(_get_legends_element())
+        # Send initial combined update with both legends and chart data
+        legends_html = _get_legends_element()
+        chart_data = {
+            "datasets": [
+                {
+                    "data": temperature_data,
+                    "label": source.label,
+                    "borderColor": source.border_color.as_hex("long"),
+                    "backgroundColor": source.background_color.as_hex("long"),
+                    "borderJoinStyle": "round",
+                }
+                for source in settings.sources
+                if (
+                    temperature_data := _get_temperature_data_for_source(
+                        source=source.source,
+                        calibration_multiplier=source.calibration_multiplier,
+                        calibration_offset=source.calibration_offset,
+                        for_json=True,
+                    )
+                )
+            ],
+        }
+
+        # Initialize last chart temperatures
+        for source in settings.sources:
+            last_chart_temperatures[source.label] = legend_data[
+                source.label
+            ].temperature
+
+        initial_message = json.dumps(
+            {"type": "combined", "legends": legends_html, "chart": chart_data}
+        )
+        await websocket.send_text(initial_message)
+
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
@@ -142,116 +374,8 @@ async def root_page(request: Request):
     return {"version": APP_VERSION, "application_name": settings.application_name}
 
 
-def _get_empty_temperature_data(
-    since: datetime, until: datetime
-) -> dict[datetime, Decimal | None]:
-    empty_temperature_data = {}
-    timestamp = since
-    while timestamp <= until:
-        empty_temperature_data[timestamp] = None
-        timestamp += timedelta(minutes=1)
-    return empty_temperature_data
-
-
 @app.get("/temperatures")
 async def get_temperatures(request: Request):  # noqa: ARG001
-    def _get_temperature_data(
-        source: str, calibration_multiplier: Decimal, calibration_offset: Decimal
-    ) -> dict[datetime, Decimal | None]:
-        current_time = datetime.now(tz=UTC).replace(second=0, microsecond=0)
-        until = current_time  # Include the current minute in the range
-        since = until - timedelta(hours=24)
-
-        last_temperature = None
-        temperature_data = _get_empty_temperature_data(since=since, until=until)
-        for _, timestamp, temperature in database.get_temperatures_cached(
-            source=source,
-            since=since,
-        ):
-            temperature = (
-                Decimal(temperature) * calibration_multiplier + calibration_offset
-            )
-            MAX_STEP = Decimal("0.5")
-            if last_temperature is not None:
-                if temperature - last_temperature > MAX_STEP:
-                    temperature = last_temperature + MAX_STEP
-                elif temperature - last_temperature < -MAX_STEP:
-                    temperature = last_temperature - MAX_STEP
-            last_temperature = temperature
-            time_index = datetime.fromisoformat(timestamp).astimezone()
-            if time_index in temperature_data:
-                temperature_data[time_index] = temperature
-
-        # Enhanced interpolation to handle larger gaps (up to 10 minutes)
-        MAX_GAP_MINUTES = 10
-        timestamps = list(temperature_data.keys())
-        values = list(temperature_data.values())
-
-        for i in range(len(values)):
-            if values[i] is None:
-                # Find the nearest non-None values before and after this position
-                prev_value = None
-                prev_index = None
-                next_value = None
-                next_index = None
-
-                # Look backwards for the previous non-None value
-                for j in range(i - 1, -1, -1):
-                    if values[j] is not None:
-                        prev_value = values[j]
-                        prev_index = j
-                        break
-
-                # Look forwards for the next non-None value
-                for j in range(i + 1, len(values)):
-                    if values[j] is not None:
-                        next_value = values[j]
-                        next_index = j
-                        break
-
-                # Interpolate if we have both previous and next values and gap is not too large
-                if (
-                    prev_value is not None
-                    and next_value is not None
-                    and prev_index is not None
-                    and next_index is not None
-                    and next_index - prev_index <= MAX_GAP_MINUTES
-                ):
-                    # Linear interpolation
-                    gap_size = next_index - prev_index
-                    position_in_gap = i - prev_index
-                    interpolated_value = prev_value + (next_value - prev_value) * (
-                        Decimal(position_in_gap) / Decimal(gap_size)
-                    )
-                    temperature_data[timestamps[i]] = interpolated_value
-
-        # Add the very latest temperature reading from legend_data if available
-        # This shows the most recent individual reading even before it's saved to database
-        # Note: legend_data already contains calibrated temperatures from process_mqtt_queue
-        current_time = datetime.now(tz=UTC).replace(second=0, microsecond=0)
-        for legend_source, legend in legend_data.items():
-            # Find matching source by comparing with source labels
-            for settings_source in settings.sources:
-                if (
-                    settings_source.source == source
-                    and settings_source.label == legend_source
-                    and legend.temperature is not None
-                ):
-                    # Use the already calibrated temperature from legend_data
-                    latest_temp = legend.temperature
-                    # Apply the same smoothing logic
-                    if last_temperature is not None:
-                        MAX_STEP = Decimal("0.5")
-                        if latest_temp - last_temperature > MAX_STEP:
-                            latest_temp = last_temperature + MAX_STEP
-                        elif latest_temp - last_temperature < -MAX_STEP:
-                            latest_temp = last_temperature - MAX_STEP
-
-                    temperature_data[current_time] = latest_temp
-                    break
-
-        return temperature_data
-
     def _get_last_known_temperature(
         temperature_data: dict[datetime, Decimal | None],
     ) -> Decimal | None:
@@ -274,10 +398,11 @@ async def get_temperatures(request: Request):  # noqa: ARG001
             }
             for source in settings.sources
             if (
-                temperature_data := _get_temperature_data(
+                temperature_data := _get_temperature_data_for_source(
                     source=source.source,
                     calibration_multiplier=source.calibration_multiplier,
                     calibration_offset=source.calibration_offset,
+                    for_json=True,
                 )
             )
         ],

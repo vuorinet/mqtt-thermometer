@@ -11,9 +11,7 @@
 {% endblock %}
 
 {% block content %}
-<div hx-ext="ws" ws-connect="/ws">
-    <div id="legends"></div>
-</div>
+<div id="legends"></div>
 
 <div class="chart-container" hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
     style="position: relative; height: 85vh; width: 95vw;">
@@ -44,7 +42,7 @@
                         beginAtZero: true,
                         position: 'right',
                         ticks: {
-                            stepSize: 5,
+                            stepSize: 1, // Reduced from 5 to 1 for better visibility of small changes
                             callback: function (value, index, values) {
                                 return value + ' °C';
                             },
@@ -53,10 +51,10 @@
                         },
                         grid: {
                             color: function (context) {
-                                if (context.tick.value % 10 === 0) {
-                                    return 'rgba(255, 255, 255, 1)';
+                                if (context.tick.value % 5 === 0) {
+                                    return 'rgba(255, 255, 255, 1)'; // Major grid lines every 5°C
                                 }
-                                return 'rgba(255, 255, 255, 0.2)';
+                                return 'rgba(255, 255, 255, 0.3)'; // Minor grid lines every 1°C
                             }
                         }
                     },
@@ -118,11 +116,73 @@
         }
     });
 
+    // WebSocket connection for real-time updates
+    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+    ws.onmessage = function (event) {
+        try {
+            const data = JSON.parse(event.data);
+
+            if (data.type === 'legends') {
+                // Update only legends
+                console.log('Websocket: Legends-only update received');
+                document.getElementById('legends').innerHTML = data.legends;
+            } else if (data.type === 'combined') {
+                // Update both legends and chart
+                console.log('Websocket: Combined legends + chart update received');
+                document.getElementById('legends').innerHTML = data.legends;
+
+                // Convert chart data format for Chart.js
+                const convertedChartData = {
+                    datasets: data.chart.datasets.map(dataset => ({
+                        ...dataset,
+                        data: Object.entries(dataset.data).map(([timestamp, value]) => ({
+                            x: timestamp,
+                            y: value
+                        }))
+                    }))
+                };
+
+                chart.data = convertedChartData;
+                chart.update('none'); // Update without animation for real-time feel
+                chart.resize(); // Force redraw to ensure visibility
+                console.log('Chart updated with new data, datasets:', convertedChartData.datasets.length);
+            }
+        } catch (error) {
+            console.log('Non-JSON websocket message received, treating as legacy legends update');
+            // Fallback for legacy legend-only updates
+            document.getElementById('legends').innerHTML = event.data;
+        }
+    };
+
+    ws.onopen = function (event) {
+        console.log('WebSocket connected');
+    };
+
+    ws.onclose = function (event) {
+        console.log('WebSocket disconnected, attempting to reconnect...');
+        setTimeout(() => {
+            location.reload(); // Reload page to reconnect
+        }, 1000);
+    };
+
     htmx.defineExtension('Chartjs', {
         transformResponse: function (text, xhr, elt) {
             var data = JSON.parse(text);
+
+            // Convert chart data format for Chart.js (from /temperatures endpoint)
+            const convertedChartData = {
+                datasets: data.datasets.map(dataset => ({
+                    ...dataset,
+                    data: Object.entries(dataset.data).map(([timestamp, value]) => ({
+                        x: timestamp,
+                        y: value
+                    }))
+                }))
+            };
+
             var ctx = document.getElementById('chart').getContext('2d');
-            chart.data = data;
+            chart.data = convertedChartData;
             chart.update();
             return "";
         }
