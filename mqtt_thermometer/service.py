@@ -158,7 +158,8 @@ async def get_temperatures(request: Request):  # noqa: ARG001
     def _get_temperature_data(
         source: str, calibration_multiplier: Decimal, calibration_offset: Decimal
     ) -> dict[datetime, Decimal | None]:
-        until = datetime.now(tz=UTC).replace(second=0, microsecond=0)
+        current_time = datetime.now(tz=UTC).replace(second=0, microsecond=0)
+        until = current_time  # Include the current minute in the range
         since = until - timedelta(hours=24)
 
         last_temperature = None
@@ -188,6 +189,32 @@ async def get_temperatures(request: Request):  # noqa: ARG001
                     temperature_data[timestamp] = (
                         previous_temperature + next_temperature
                     ) / 2
+
+        # Add the very latest temperature reading from legend_data if available
+        # This shows the most recent individual reading even before it's saved to database
+        current_time = datetime.now(tz=UTC).replace(second=0, microsecond=0)
+        for legend_source, legend in legend_data.items():
+            # Find matching source by comparing with source labels
+            for settings_source in settings.sources:
+                if (
+                    settings_source.source == source
+                    and settings_source.label == legend_source
+                    and legend.temperature is not None
+                ):
+                    # Apply the same calibration as used for database values
+                    latest_temp = (
+                        legend.temperature * calibration_multiplier + calibration_offset
+                    )
+                    # Apply the same smoothing logic
+                    if last_temperature is not None:
+                        MAX_STEP = Decimal("0.5")
+                        if latest_temp - last_temperature > MAX_STEP:
+                            latest_temp = last_temperature + MAX_STEP
+                        elif latest_temp - last_temperature < -MAX_STEP:
+                            latest_temp = last_temperature - MAX_STEP
+
+                    temperature_data[current_time] = latest_temp
+                    break
 
         return temperature_data
 
