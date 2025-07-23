@@ -1,5 +1,6 @@
 # Configuration for Cottage Raspberry Pi
 application_name = "Cottage °C"
+location = "Summer Cottage"
 db_connection_string = "/app/data/mqtt-thermometer.db"
 
 [mqtt_broker]

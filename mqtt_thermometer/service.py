@@ -411,7 +411,11 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.get("/", response_class=HTMLResponse)
 @htmx("index", "index")
 async def root_page(request: Request):
-    return {"version": APP_VERSION, "application_name": settings.application_name}
+    return {
+        "version": APP_VERSION,
+        "application_name": settings.application_name,
+        "location": settings.location,
+    }
 
 
 @app.get("/temperatures")

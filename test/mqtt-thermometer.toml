@@ -1,10 +1,10 @@
-# Configuration for Cottage Raspberry Pi
-application_name = "Cottage °C"
-location = "Cottage"
-db_connection_string = "mqtt-thermometer.db"
+# Test configuration
+application_name = "Test Thermometer"
+location = "Test Location"
+db_connection_string = "test-mqtt-thermometer.db"
 
 [mqtt_broker]
-host = "raspi.cottage.vuorinet.net"
+host = "192.168.1.113"
 port = 1883
 
 [[sources]]

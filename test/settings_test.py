@@ -1,8 +1,11 @@
 from decimal import Decimal
+
 from mqtt_thermometer.settings import settings
 
 
 def test_config():
+    assert settings.application_name == "Test Thermometer"
+    assert settings.location == "Test Location"
     assert settings.mqtt_broker.host == "192.168.1.113"
     assert settings.mqtt_broker.port == 1883
 

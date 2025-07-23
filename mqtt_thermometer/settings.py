@@ -36,6 +36,16 @@ def _get_toml_file_path() -> Path:
     if env_config_path and env_config_path.exists():
         return env_config_path
 
+    # Check if we're running tests (look for test config first)
+    import sys
+
+    if any("pytest" in arg for arg in sys.argv) or "test" in sys.modules:
+        test_config_path = (
+            Path(__file__).parent.parent / "test" / "mqtt-thermometer.toml"
+        )
+        if test_config_path.exists():
+            return test_config_path
+
     toml_file_name = "mqtt-thermometer.toml"
     file_path = Path(__file__).parent
     while file_path != file_path.root:
@@ -54,6 +64,7 @@ def _get_toml_file_path() -> Path:
 
 class RootSettings(BaseSettings):
     application_name: str = Field(default="Thermometer")
+    location: str = Field(default="Unknown")
     mqtt_broker: MQTTBrokerSettings = Field(default=...)
     db_connection_string: str = Field(
         default="data/mqtt-thermometer.db"
