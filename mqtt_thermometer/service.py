@@ -181,14 +181,49 @@ async def get_temperatures(request: Request):  # noqa: ARG001
             time_index = datetime.fromisoformat(timestamp).astimezone()
             if time_index in temperature_data:
                 temperature_data[time_index] = temperature
-        for index, (timestamp, temperature) in enumerate(temperature_data.items()):
-            if temperature is None and index > 0 and index < len(temperature_data) - 1:
-                previous_temperature = list(temperature_data.values())[index - 1]
-                next_temperature = list(temperature_data.values())[index + 1]
-                if previous_temperature is not None and next_temperature is not None:
-                    temperature_data[timestamp] = (
-                        previous_temperature + next_temperature
-                    ) / 2
+
+        # Enhanced interpolation to handle larger gaps (up to 10 minutes)
+        MAX_GAP_MINUTES = 10
+        timestamps = list(temperature_data.keys())
+        values = list(temperature_data.values())
+
+        for i in range(len(values)):
+            if values[i] is None:
+                # Find the nearest non-None values before and after this position
+                prev_value = None
+                prev_index = None
+                next_value = None
+                next_index = None
+
+                # Look backwards for the previous non-None value
+                for j in range(i - 1, -1, -1):
+                    if values[j] is not None:
+                        prev_value = values[j]
+                        prev_index = j
+                        break
+
+                # Look forwards for the next non-None value
+                for j in range(i + 1, len(values)):
+                    if values[j] is not None:
+                        next_value = values[j]
+                        next_index = j
+                        break
+
+                # Interpolate if we have both previous and next values and gap is not too large
+                if (
+                    prev_value is not None
+                    and next_value is not None
+                    and prev_index is not None
+                    and next_index is not None
+                    and next_index - prev_index <= MAX_GAP_MINUTES
+                ):
+                    # Linear interpolation
+                    gap_size = next_index - prev_index
+                    position_in_gap = i - prev_index
+                    interpolated_value = prev_value + (next_value - prev_value) * (
+                        Decimal(position_in_gap) / Decimal(gap_size)
+                    )
+                    temperature_data[timestamps[i]] = interpolated_value
 
         # Add the very latest temperature reading from legend_data if available
         # This shows the most recent individual reading even before it's saved to database
