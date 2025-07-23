@@ -2,9 +2,11 @@ html,
 body {
   margin: 0;
   padding: 0; /* Remove padding for better mobile utilization */
-  height: 100%;
+  height: 100vh; /* Fallback for older browsers */
+  height: 100dvh; /* Use dynamic viewport height for better mobile compatibility */
   width: 100%;
   overflow-x: hidden;
+  overflow-y: hidden; /* Prevent scrolling */
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
@@ -94,16 +96,16 @@ body {
   }
 
   .heading-container {
-    padding: 10px 0 5px 0 !important;
+    padding: 5px 0 5px 0 !important; /* Minimal padding for mobile */
   }
 
   .main-title {
-    font-size: 24px !important;
-    margin: 0 0 5px 0 !important;
+    font-size: 20px !important; /* Smaller font for mobile */
+    margin: 0 0 2px 0 !important; /* Reduced margins */
   }
 
   .location-title {
-    font-size: 18px !important;
+    font-size: 16px !important; /* Smaller font for mobile */
     margin: 0 !important;
   }
 
@@ -118,7 +120,8 @@ body {
   }
 
   .chart-container {
-    height: 65vh !important; /* Reduced further to accommodate heading */
+    height: 55vh !important; /* Fallback for older browsers */
+    height: 55dvh !important; /* Further reduced and using dvh for better mobile compatibility */
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
