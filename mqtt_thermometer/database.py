@@ -82,7 +82,7 @@ def create_table():
 
 
 def save_temperature(source: str, timestamp: datetime, temperature: Decimal) -> bool:
-    """Save a temperature reading to the database.
+    """Save a temperature reading to the database and cache.
 
     Returns True if successful, False otherwise.
     """
@@ -95,6 +95,12 @@ def save_temperature(source: str, timestamp: datetime, temperature: Decimal) -> 
                     (source, timestamp.isoformat(), temperature),
                 )
                 connection.commit()
+
+                # Add to cache after successful database save
+                from mqtt_thermometer import cache
+
+                cache.add_temperature_to_cache(source, timestamp, temperature)
+
                 return True
     except Exception as e:
         logger.error(f"Failed to save temperature: {e}")
@@ -137,6 +143,22 @@ def get_temperatures(source: str, since: datetime) -> list:
     except Exception as e:
         logger.error(f"Failed to get temperatures: {e}")
         return []
+
+
+def get_temperatures_cached(source: str, since: datetime) -> list:
+    """Get temperature readings using cache first, then database for missing data.
+
+    Returns a list of (source, timestamp, temperature) tuples.
+    """
+    try:
+        from mqtt_thermometer import cache
+
+        return cache.get_temperatures_with_cache(source, since)
+    except Exception as e:
+        logger.error(
+            f"Failed to get temperatures from cache, falling back to database: {e}"
+        )
+        return get_temperatures(source, since)
 
 
 if __name__ == "__main__":

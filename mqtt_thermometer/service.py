@@ -79,6 +79,19 @@ async def reset_inactive_temperatures():
         await _broadcast_temperature_data()
 
 
+async def cleanup_cache():
+    """Periodic cache cleanup task that runs every 30 minutes."""
+    while True:
+        await asyncio.sleep(30 * 60)  # 30 minutes
+        try:
+            from mqtt_thermometer import cache
+
+            cache.periodic_cleanup()
+            logger.info("Cache cleanup completed")
+        except Exception as e:
+            logger.error(f"Cache cleanup failed: {e}")
+
+
 async def process_mqtt_queue(queue):
     while True:
         source_mqtt_topic, temperature = await queue.get()
@@ -104,7 +117,14 @@ async def process_mqtt_queue(queue):
 async def lifespan(app: FastAPI):
     asyncio.create_task(process_mqtt_queue(mqtt_message_queue))
     asyncio.create_task(reset_inactive_temperatures())
+    asyncio.create_task(cleanup_cache())
     database.create_table()
+
+    # Initialize cache with existing data from database
+    from mqtt_thermometer import cache
+
+    cache.initialize_cache_from_database()
+
     thread = Thread(target=mqtt.poll_mqtt_messages, args=(mqtt_message_queue,))
     thread.start()
     yield
@@ -157,7 +177,7 @@ async def get_temperatures(request: Request):  # noqa: ARG001
 
         last_temperature = None
         temperature_data = _get_empty_temperature_data(since=since, until=until)
-        for _, timestamp, temperature in database.get_temperatures(
+        for _, timestamp, temperature in database.get_temperatures_cached(
             source=source,
             since=since,
         ):
@@ -215,6 +235,24 @@ async def get_temperatures(request: Request):  # noqa: ARG001
             )
         ],
     }
+
+
+@app.get("/cache/stats")
+async def get_cache_stats():
+    """Get cache statistics - useful for monitoring cache performance."""
+    try:
+        from mqtt_thermometer import cache
+
+        stats = cache.get_cache_stats()
+        total_entries = sum(stats.values())
+        return {
+            "cache_stats": stats,
+            "total_cached_entries": total_entries,
+            "sources": list(stats.keys()),
+        }
+    except Exception as e:
+        logger.error(f"Failed to get cache stats: {e}")
+        return {"error": "Failed to get cache statistics"}
 
 
 # Add favicon route to handle direct requests

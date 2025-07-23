@@ -4,6 +4,27 @@ The goal of this project is to monitor temperature from various sources using MQ
 
 ![Screenshot](screenshot.png)
 
+## Features
+
+- **Real-time temperature monitoring** from multiple MQTT sources
+- **24-hour historical data** with interactive charts
+- **In-memory cache** for faster data retrieval (new!)
+- **Calibration support** for individual sensors
+- **WebSocket updates** for real-time display
+- **Docker deployment** with automated CI/CD
+
+## Performance
+
+The application now includes an intelligent caching system that stores the last 24 hours of temperature readings in memory. This provides:
+
+- **Instant startup performance** - cache is populated with existing data on startup
+- **Faster API responses** for historical data queries
+- **Reduced database load** for frequently accessed data
+- **Automatic cache management** with 24-hour data retention
+- **Seamless fallback** to database when cache misses occur
+
+Cache statistics are available at `/cache/stats` endpoint for monitoring.
+
 # Prerequisites
 
 MQTT broker (for example https://mosquitto.org/) must be installed and running.
