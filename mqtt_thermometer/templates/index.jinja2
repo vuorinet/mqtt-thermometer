@@ -220,7 +220,8 @@
     });
 
     // WebSocket connection for real-time updates
-    const ws = new WebSocket(`ws://${window.location.host}/ws`);
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
 
     ws.onmessage = function (event) {
         try {
