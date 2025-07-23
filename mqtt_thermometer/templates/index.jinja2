@@ -14,7 +14,7 @@
 <div id="legends"></div>
 
 <div class="chart-container" hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
-    style="position: relative; height: 85vh; width: 100vw;">
+    style="position: relative; height: 85vh; width: 100vw; padding: 0; margin: 0;">
     <canvas id="chart"></canvas>
 </div>
 
@@ -57,7 +57,8 @@
 
             // Heat map bar configuration
             const barWidth = isMobile ? 15 : 20;
-            const barX = chartArea.right + (isMobile ? 55 : 85); // Position even further to the right of the chart
+            // Position heatmap further right by its own width plus 5px
+            const barX = chartArea.right + (isMobile ? 40 : 85); // Moved additional 5px further right
 
             // Draw heat map bar
             const minTemp = yAxis.min;
@@ -201,7 +202,7 @@
                 layout: {
                     padding: {
                         top: isMobile ? 0 : 8,
-                        right: isMobile ? 60 : 80, // Add extra padding for heat map
+                        right: isMobile ? 25 : 80, // Minimal padding to maximize chart area usage
                         bottom: isMobile ? 0 : 8,
                         left: isMobile ? 0 : 8
                     }

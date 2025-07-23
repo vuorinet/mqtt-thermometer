@@ -1,7 +1,7 @@
 html,
 body {
   margin: 0;
-  padding: 2px;
+  padding: 0; /* Remove padding for better mobile utilization */
   height: 100%;
   width: 100%;
   overflow-x: hidden;
@@ -21,7 +21,7 @@ body {
   justify-content: space-between; /* Changed from center to space-between */
   width: 100%; /* Ensure container takes full width */
   max-width: 800px; /* Limit maximum width */
-  padding: 0; /* Remove padding to maximize space */
+  padding: 8px 0; /* Add vertical padding for better spacing */
   margin: 0 auto; /* Center the container */
 }
 
@@ -61,13 +61,14 @@ body {
   div,
   span,
   p {
-    padding: 2px !important;
+    padding: 0 !important; /* Remove all padding for maximum space utilization */
   }
 
   body {
     font-size: 12px !important; /* Reduced from 14px to 12px */
     transform-origin: top left;
     height: auto;
+    padding: 5px 0 0 0 !important; /* Add small top padding for legends, no horizontal padding */
   }
 
   .legendlabel {
