@@ -62,23 +62,41 @@
             // Draw heat map bar
             const minTemp = yAxis.min;
             const maxTemp = yAxis.max;
-            const tempRange = maxTemp - minTemp;
             const barHeight = chartArea.bottom - chartArea.top;
 
-            // Draw temperature gradient bar
-            for (let i = 0; i <= tempRange; i += 0.5) {
-                const temp = minTemp + i;
-                const y = yAxis.getPixelForValue(temp);
-                const segmentHeight = barHeight / (tempRange / 0.5);
+            // Create linear gradient for smooth color transitions
+            const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
 
-                ctx.fillStyle = getTemperatureColor(temp);
-                ctx.fillRect(barX, y - segmentHeight / 2, barWidth, segmentHeight + 1);
-            }
+            // Define gradient stops based on temperature ranges (ordered from cold to hot)
+            const tempStops = [
+                { temp: -20, color: '#191970' }, // Midnight blue (extremely cold)
+                { temp: -10, color: '#0000CD' }, // Medium blue (very cold)
+                { temp: 0, color: '#4169E1' },   // Royal blue (cold)
+                { temp: 5, color: '#00CED1' },   // Dark turquoise (coldish)
+                { temp: 10, color: '#00FF7F' },  // Spring green (cold)
+                { temp: 15, color: '#ADFF2F' },  // Green yellow (cool)
+                { temp: 20, color: '#FFD700' },  // Gold (neutral-warm)
+                { temp: 25, color: '#FF8C00' },  // Dark orange (warm)
+                { temp: 30, color: '#FF4500' },  // Orange red (hot)
+                { temp: 35, color: '#8B0000' }   // Dark red (very hot)
+            ];
 
-            // Remove the border around heat map to see if that's causing the lines
-            // ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            // ctx.lineWidth = 1;
-            // ctx.strokeRect(barX, chartArea.top, barWidth, barHeight);
+            // Calculate gradient stops as percentages
+            tempStops.forEach(stop => {
+                let position;
+                if (stop.temp <= minTemp) {
+                    position = 0;
+                } else if (stop.temp >= maxTemp) {
+                    position = 1;
+                } else {
+                    position = (stop.temp - minTemp) / (maxTemp - minTemp);
+                }
+                gradient.addColorStop(position, stop.color);
+            });
+
+            // Draw the gradient-filled rectangle
+            ctx.fillStyle = gradient;
+            ctx.fillRect(barX, chartArea.top, barWidth, barHeight);
 
             // Restore the context state
             ctx.restore();
