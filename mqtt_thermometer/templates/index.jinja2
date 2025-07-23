@@ -14,7 +14,7 @@
 <div id="legends"></div>
 
 <div class="chart-container" hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
-    style="position: relative; height: 85vh; width: 95vw;">
+    style="position: relative; height: 85vh; width: 100vw;">
     <canvas id="chart"></canvas>
 </div>
 
@@ -29,6 +29,62 @@
         Chart.defaults.font.size = 24;  // Original font size for desktop
     }
 
+    // Temperature color mapping function
+    function getTemperatureColor(temp) {
+        // Color mapping based on temperature ranges
+        if (temp >= 30) return '#8B0000'; // Dark red (very hot)
+        if (temp >= 25) return '#FF4500'; // Orange red (hot)
+        if (temp >= 20) return '#FF8C00'; // Dark orange (warm)
+        if (temp >= 15) return '#FFD700'; // Gold (neutral-warm)
+        if (temp >= 10) return '#ADFF2F'; // Green yellow (cool)
+        if (temp >= 5) return '#00FF7F'; // Spring green (cold)
+        if (temp >= 0) return '#00CED1'; // Dark turquoise (coldish)
+        if (temp >= -10) return '#4169E1'; // Royal blue (cold)
+        if (temp >= -20) return '#0000CD'; // Medium blue (very cold)
+        return '#191970'; // Midnight blue (extremely cold)
+    }
+
+    // Heat map plugin
+    const heatMapPlugin = {
+        id: 'heatMap',
+        afterDraw: function (chart) {
+            const ctx = chart.ctx;
+            const chartArea = chart.chartArea;
+            const yAxis = chart.scales.y;
+
+            // Save the current context state
+            ctx.save();
+
+            // Heat map bar configuration
+            const barWidth = isMobile ? 15 : 20;
+            const barX = chartArea.right + (isMobile ? 55 : 85); // Position even further to the right of the chart
+
+            // Draw heat map bar
+            const minTemp = yAxis.min;
+            const maxTemp = yAxis.max;
+            const tempRange = maxTemp - minTemp;
+            const barHeight = chartArea.bottom - chartArea.top;
+
+            // Draw temperature gradient bar
+            for (let i = 0; i <= tempRange; i += 0.5) {
+                const temp = minTemp + i;
+                const y = yAxis.getPixelForValue(temp);
+                const segmentHeight = barHeight / (tempRange / 0.5);
+
+                ctx.fillStyle = getTemperatureColor(temp);
+                ctx.fillRect(barX, y - segmentHeight / 2, barWidth, segmentHeight + 1);
+            }
+
+            // Remove the border around heat map to see if that's causing the lines
+            // ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            // ctx.lineWidth = 1;
+            // ctx.strokeRect(barX, chartArea.top, barWidth, barHeight);
+
+            // Restore the context state
+            ctx.restore();
+        }
+    };
+
     const chart = new Chart(
         document.getElementById('chart'),
         {
@@ -37,6 +93,9 @@
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                // Disable chart border to prevent lines over heat map
+                borderColor: 'transparent',
+                backgroundColor: 'transparent',
                 scales: {
                     y: {
                         beginAtZero: true,
@@ -67,7 +126,10 @@
                             // Show tick marks on the axis itself (right side)
                             drawTicks: true,
                             tickColor: 'rgba(255, 255, 255, 0.8)', // White color for all tick marks
-                            tickLength: 4 // Small tick marks for 1°C intervals
+                            tickLength: 4, // Small tick marks for 1°C intervals
+                            // Prevent grid lines from extending beyond chart area
+                            drawBorder: false,
+                            offset: false
                         }
                     },
                     x: {
@@ -97,14 +159,6 @@
                         }
                     }
                 },
-                elements: {
-                    point: {
-                        radius: 0
-                    },
-                    line: {
-                        borderWidth: isMobile ? 2 : 3
-                    }
-                },
                 animation: {
                     duration: 0
                 },
@@ -113,10 +167,29 @@
                         display: false
                     }
                 },
+                // Additional border settings to prevent chart borders
+                interaction: {
+                    intersect: false
+                },
+                elements: {
+                    point: {
+                        radius: 0,
+                        borderWidth: 0
+                    },
+                    line: {
+                        borderWidth: isMobile ? 2 : 3
+                    }
+                },
                 layout: {
-                    padding: isMobile ? 0 : 8 // Reduce padding on mobile
+                    padding: {
+                        top: isMobile ? 0 : 8,
+                        right: isMobile ? 60 : 80, // Add extra padding for heat map
+                        bottom: isMobile ? 0 : 8,
+                        left: isMobile ? 0 : 8
+                    }
                 }
-            }
+            },
+            plugins: [heatMapPlugin] // Register the heat map plugin
         }
     );
 
