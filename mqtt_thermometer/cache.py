@@ -18,22 +18,8 @@ cache_mutex = threading.RLock()
 CACHE_MAX_AGE = timedelta(hours=24)
 
 
-def _cleanup_old_entries():
-    """Remove cache entries older than 24 hours."""
-    cutoff_time = datetime.now(tz=UTC) - CACHE_MAX_AGE
-
-    with cache_mutex:
-        for source in temperature_cache:
-            # Remove entries older than cutoff_time
-            temperature_cache[source] = [
-                (timestamp, temp)
-                for timestamp, temp in temperature_cache[source]
-                if timestamp >= cutoff_time
-            ]
-
-
 def add_temperature_to_cache(source: str, timestamp: datetime, temperature: Decimal):
-    """Add a temperature reading to the cache."""
+    """Add a temperature reading to the cache and clean up old entries."""
     with cache_mutex:
         # Add the new entry
         temperature_cache[source].append((timestamp, temperature))
@@ -41,16 +27,19 @@ def add_temperature_to_cache(source: str, timestamp: datetime, temperature: Deci
         # Keep the list sorted by timestamp
         temperature_cache[source].sort(key=lambda x: x[0])
 
-        # Clean up old entries periodically
-        _cleanup_old_entries()
+        # Clean up old entries (older than 24 hours) every time we add new data
+        cutoff_time = datetime.now(tz=UTC) - CACHE_MAX_AGE
+        temperature_cache[source] = [
+            (ts, temp) for ts, temp in temperature_cache[source] if ts >= cutoff_time
+        ]
 
         logger.debug(f"Added temperature to cache: {source} {timestamp} {temperature}")
 
 
-def get_temperatures_from_cache(
+def get_temperatures_from_cache_only(
     source: str, since: datetime
 ) -> List[Tuple[str, str, Decimal]]:
-    """Get temperature readings from cache for a specific source since a given timestamp.
+    """Get temperature readings from cache only - no database fallback.
 
     Returns a list of (source, timestamp_iso, temperature) tuples.
     """
@@ -71,53 +60,28 @@ def get_temperatures_from_cache(
         return cached_entries
 
 
-def get_temperatures_with_cache(
+def get_temperatures_cached(
     source: str, since: datetime
 ) -> List[Tuple[str, str, Decimal]]:
-    """Get temperature readings using cache first, then database for missing data.
+    """Get temperature readings from cache only - no database fallback.
 
     Returns a list of (source, timestamp_iso, temperature) tuples.
     """
-    # Get what we have in cache
-    cached_data = get_temperatures_from_cache(source, since)
+    return get_temperatures_from_cache_only(source, since)
 
-    # If we have complete data in cache (at least some entries and the oldest is close to 'since')
-    if cached_data:
-        # Find the oldest cached timestamp
-        oldest_cached = min(
-            datetime.fromisoformat(timestamp_iso) for _, timestamp_iso, _ in cached_data
-        )
 
-        # If our cache covers the requested period well enough (within 5 minutes of requested start)
-        if oldest_cached <= since + timedelta(minutes=5):
-            logger.debug(
-                f"Cache hit: returning {len(cached_data)} entries for {source}"
-            )
-            return cached_data
+def get_temperatures_bypass_cache(
+    source: str, since: datetime
+) -> List[Tuple[str, str, Decimal]]:
+    """Get temperature readings directly from database, bypassing cache entirely.
 
-    # Cache miss or incomplete data - fetch from database
-    logger.debug(f"Cache miss: fetching from database for {source} since {since}")
-    db_data = database.get_temperatures(source, since)
+    This function is useful for debugging cache issues or when you specifically
+    need fresh data from the database.
 
-    # Add the database data to cache for future requests
-    with cache_mutex:
-        for db_source, timestamp_iso, temperature in db_data:
-            timestamp = datetime.fromisoformat(timestamp_iso)
-
-            # Check if this entry is already in cache to avoid duplicates
-            exists = any(
-                cached_timestamp == timestamp
-                for cached_timestamp, _ in temperature_cache[source]
-            )
-
-            if not exists:
-                temperature_cache[source].append((timestamp, temperature))
-
-        # Keep the list sorted and clean up old entries
-        temperature_cache[source].sort(key=lambda x: x[0])
-        _cleanup_old_entries()
-
-    return db_data
+    Returns a list of (source, timestamp_iso, temperature) tuples.
+    """
+    logger.debug(f"Bypassing cache: fetching from database for {source} since {since}")
+    return database.get_temperatures(source, since)
 
 
 def initialize_cache_from_database():
@@ -180,13 +144,3 @@ def get_cache_stats() -> Dict[str, int]:
         for source, entries in temperature_cache.items():
             stats[source] = len(entries)
         return stats
-
-
-# Periodic cleanup task
-def periodic_cleanup():
-    """Periodically clean up old cache entries. Should be called regularly."""
-    _cleanup_old_entries()
-
-    with cache_mutex:
-        total_entries = sum(len(entries) for entries in temperature_cache.values())
-        logger.debug(f"Cache cleanup completed. Total cached entries: {total_entries}")

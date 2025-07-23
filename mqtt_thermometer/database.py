@@ -146,19 +146,17 @@ def get_temperatures(source: str, since: datetime) -> list:
 
 
 def get_temperatures_cached(source: str, since: datetime) -> list:
-    """Get temperature readings using cache first, then database for missing data.
+    """Get temperature readings from cache only.
 
     Returns a list of (source, timestamp, temperature) tuples.
     """
     try:
         from mqtt_thermometer import cache
 
-        return cache.get_temperatures_with_cache(source, since)
+        return cache.get_temperatures_cached(source, since)
     except Exception as e:
-        logger.error(
-            f"Failed to get temperatures from cache, falling back to database: {e}"
-        )
-        return get_temperatures(source, since)
+        logger.error(f"Failed to get temperatures from cache: {e}")
+        return []
 
 
 if __name__ == "__main__":

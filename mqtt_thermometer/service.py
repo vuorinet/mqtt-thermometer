@@ -79,19 +79,6 @@ async def reset_inactive_temperatures():
         await _broadcast_temperature_data()
 
 
-async def cleanup_cache():
-    """Periodic cache cleanup task that runs every 30 minutes."""
-    while True:
-        await asyncio.sleep(30 * 60)  # 30 minutes
-        try:
-            from mqtt_thermometer import cache
-
-            cache.periodic_cleanup()
-            logger.info("Cache cleanup completed")
-        except Exception as e:
-            logger.error(f"Cache cleanup failed: {e}")
-
-
 async def process_mqtt_queue(queue):
     while True:
         source_mqtt_topic, temperature = await queue.get()
@@ -117,7 +104,6 @@ async def process_mqtt_queue(queue):
 async def lifespan(app: FastAPI):
     asyncio.create_task(process_mqtt_queue(mqtt_message_queue))
     asyncio.create_task(reset_inactive_temperatures())
-    asyncio.create_task(cleanup_cache())
     database.create_table()
 
     # Initialize cache with existing data from database
@@ -253,6 +239,36 @@ async def get_cache_stats():
     except Exception as e:
         logger.error(f"Failed to get cache stats: {e}")
         return {"error": "Failed to get cache statistics"}
+
+
+@app.get("/debug/temperatures/{source}")
+async def debug_temperatures(source: str, use_cache: bool = True, hours: int = 24):
+    """Debug endpoint to compare cache vs database data for a specific source."""
+    try:
+        from mqtt_thermometer import cache
+
+        since = datetime.now(tz=UTC) - timedelta(hours=hours)
+
+        if use_cache:
+            results = database.get_temperatures_cached(source, since)
+            data_source = "cache"
+        else:
+            results = cache.get_temperatures_bypass_cache(source, since)
+            data_source = "database"
+
+        return {
+            "source": source,
+            "data_source": data_source,
+            "hours": hours,
+            "since": since.isoformat(),
+            "count": len(results),
+            "first_timestamp": results[0][1] if results else None,
+            "last_timestamp": results[-1][1] if results else None,
+            "sample_data": results[:5] if results else [],  # First 5 entries as sample
+        }
+    except Exception as e:
+        logger.error(f"Failed to get debug temperatures: {e}")
+        return {"error": f"Failed to get debug temperatures: {e}"}
 
 
 # Add favicon route to handle direct requests

@@ -15,15 +15,16 @@ The goal of this project is to monitor temperature from various sources using MQ
 
 ## Performance
 
-The application now includes an intelligent caching system that stores the last 24 hours of temperature readings in memory. This provides:
+The application now includes a simplified, high-performance caching system:
 
+- **Cache-first architecture** - all temperature data is served from memory
 - **Instant startup performance** - cache is populated with existing data on startup
-- **Faster API responses** for historical data queries
-- **Reduced database load** for frequently accessed data
-- **Automatic cache management** with 24-hour data retention
-- **Seamless fallback** to database when cache misses occur
+- **Zero database queries** for normal temperature chart requests
+- **Automatic cache maintenance** - old entries are cleaned up on every data write
+- **Continuous cache updates** - new MQTT data is added to both database and cache
+- **24-hour rolling window** - cache automatically maintains exactly 24 hours of data
 
-Cache statistics are available at `/cache/stats` endpoint for monitoring.
+The simplified design eliminates complex fallback logic and ensures predictable, fast performance. Cache statistics are available at `/cache/stats` endpoint for monitoring.
 
 # Prerequisites
 

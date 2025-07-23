@@ -49,8 +49,8 @@ class TestCacheIntegration(unittest.TestCase):
         self.assertEqual(results[0][1], timestamp.isoformat())
         self.assertEqual(results[0][2], temperature)
 
-    def test_cache_miss_fallback_to_database(self):
-        """Test that cache misses fall back to database correctly."""
+    def test_cache_only_behavior(self):
+        """Test that cache returns only cached data, no database fallback."""
         source = "test/sensor"
         timestamp = datetime.now(tz=UTC)
         temperature = Decimal("23.0")
@@ -64,21 +64,24 @@ class TestCacheIntegration(unittest.TestCase):
             )
             conn.commit()
 
-        # Cache should be empty, so this should fall back to database
+        # Cache should be empty, so cache-only method returns nothing
         since = timestamp - timedelta(minutes=1)
         results = database.get_temperatures_cached(source, since)
 
-        self.assertEqual(len(results), 1)
-        self.assertEqual(results[0][0], source)
-        self.assertEqual(results[0][1], timestamp.isoformat())
-        self.assertEqual(results[0][2], temperature)
+        # Should return empty because data is only in database, not cache
+        self.assertEqual(len(results), 0)
 
-    def test_mixed_cache_and_database_data(self):
-        """Test handling of data partially in cache and partially in database."""
+        # But direct database access should return the data
+        db_results = database.get_temperatures(source, since)
+        self.assertEqual(len(db_results), 1)
+        self.assertEqual(db_results[0][2], temperature)
+
+    def test_cache_population_through_save(self):
+        """Test that data added through save_temperature appears in cache."""
         source = "test/sensor"
         base_time = datetime.now(tz=UTC)
 
-        # Add old data directly to database (simulating pre-cache data)
+        # Add old data directly to database (simulating existing data)
         old_time = base_time - timedelta(hours=2)
         old_temp = Decimal("20.0")
         with database.get_database_connection() as conn:
@@ -93,20 +96,17 @@ class TestCacheIntegration(unittest.TestCase):
         recent_temp = Decimal("25.0")
         database.save_temperature(source, base_time, recent_temp)
 
-        # Retrieve all data
+        # Retrieve from cache - should only get the recent data
         since = base_time - timedelta(hours=3)
         results = database.get_temperatures_cached(source, since)
 
-        # Should get both entries
-        self.assertEqual(len(results), 2)
-        timestamps = [datetime.fromisoformat(r[1]) for r in results]
-        temperatures = [r[2] for r in results]
+        # Should only get the recent entry (the one added via save_temperature)
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0][2], recent_temp)
 
-        # Should be in chronological order
-        self.assertEqual(min(timestamps), old_time)
-        self.assertEqual(max(timestamps), base_time)
-        self.assertIn(old_temp, temperatures)
-        self.assertIn(recent_temp, temperatures)
+        # But database has both entries
+        db_results = database.get_temperatures(source, since)
+        self.assertEqual(len(db_results), 2)
 
     def test_cache_initialization_from_database(self):
         """Test that cache can be initialized from existing database data."""
@@ -135,7 +135,7 @@ class TestCacheIntegration(unittest.TestCase):
 
         # Verify cache is populated
         since = base_time - timedelta(hours=3)
-        cached_results = cache.get_temperatures_from_cache(source, since)
+        cached_results = cache.get_temperatures_from_cache_only(source, since)
 
         self.assertEqual(len(cached_results), 3)
 
@@ -159,6 +159,46 @@ class TestCacheIntegration(unittest.TestCase):
         # Cache should be empty
         stats = cache.get_cache_stats()
         self.assertEqual(len(stats), 0)
+
+    def test_cache_with_old_data_coverage_issue(self):
+        """Test that cache correctly handles old data that doesn't cover recent period."""
+        source = "test/sensor"
+        now = datetime.now(tz=UTC)
+
+        # Add only old data to database (simulating cottage data copied to local env)
+        old_data = [
+            (now - timedelta(hours=4), Decimal("18.0")),
+            (now - timedelta(hours=3), Decimal("19.0")),
+            (
+                now - timedelta(hours=2, minutes=30),
+                Decimal("20.0"),
+            ),  # Last data 2.5 hours ago
+        ]
+
+        with database.get_database_connection() as conn:
+            cursor = conn.cursor()
+            for timestamp, temperature in old_data:
+                cursor.execute(
+                    "INSERT INTO temperature (source, timestamp, temperature) VALUES (?, ?, ?)",
+                    (source, timestamp.isoformat(), temperature),
+                )
+            conn.commit()
+
+        # Initialize cache from database
+        cache.clear_cache()
+        cache.initialize_cache_from_database()
+
+        # Request last 24 hours of data (should be cache miss due to no recent coverage)
+        since = now - timedelta(hours=24)
+        results = database.get_temperatures_cached(source, since)
+
+        # Should get all data from database (not cached data only)
+        self.assertEqual(len(results), 3)
+
+        # Verify the data is complete and correct
+        result_temps = [r[2] for r in results]
+        expected_temps = [Decimal("18.0"), Decimal("19.0"), Decimal("20.0")]
+        self.assertEqual(result_temps, expected_temps)
 
 
 if __name__ == "__main__":

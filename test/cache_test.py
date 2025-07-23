@@ -27,7 +27,7 @@ class TestTemperatureCache(unittest.TestCase):
 
         # Retrieve from cache
         since = timestamp - timedelta(minutes=1)
-        results = cache.get_temperatures_from_cache(source, since)
+        results = cache.get_temperatures_from_cache_only(source, since)
 
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0][0], source)
@@ -49,7 +49,7 @@ class TestTemperatureCache(unittest.TestCase):
         )
 
         # Retrieve all
-        results = cache.get_temperatures_from_cache(
+        results = cache.get_temperatures_from_cache_only(
             source, base_time - timedelta(minutes=1)
         )
 
@@ -75,7 +75,7 @@ class TestTemperatureCache(unittest.TestCase):
 
         # Get only recent temperatures
         since = base_time - timedelta(minutes=30)
-        results = cache.get_temperatures_from_cache(source, since)
+        results = cache.get_temperatures_from_cache_only(source, since)
 
         # Should only get the most recent one
         self.assertEqual(len(results), 1)
@@ -91,13 +91,11 @@ class TestTemperatureCache(unittest.TestCase):
         cache.add_temperature_to_cache(source, old_time, Decimal("15.0"))
         cache.add_temperature_to_cache(source, recent_time, Decimal("20.0"))
 
-        # Cleanup should remove old entries
-        cache.periodic_cleanup()
-
+        # The second add should automatically clean up old entries
         # Get all entries
-        results = cache.get_temperatures_from_cache(source, old_time)
+        results = cache.get_temperatures_from_cache_only(source, old_time)
 
-        # Should only have recent entry
+        # Should only have recent entry due to automatic cleanup
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0][2], Decimal("20.0"))
 
@@ -109,10 +107,10 @@ class TestTemperatureCache(unittest.TestCase):
         cache.add_temperature_to_cache("source2", timestamp, Decimal("25.0"))
 
         # Get from different sources
-        results1 = cache.get_temperatures_from_cache(
+        results1 = cache.get_temperatures_from_cache_only(
             "source1", timestamp - timedelta(minutes=1)
         )
-        results2 = cache.get_temperatures_from_cache(
+        results2 = cache.get_temperatures_from_cache_only(
             "source2", timestamp - timedelta(minutes=1)
         )
 
