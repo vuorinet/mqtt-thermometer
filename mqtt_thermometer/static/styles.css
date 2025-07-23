@@ -125,9 +125,9 @@ body {
   }
 
   .chart-container {
-    height: 45vh !important; /* Increased from 25vh for better usability */
-    height: calc(var(--vh, 1vh) * 45) !important;
-    height: 45dvh !important;
+    height: 75vh !important; /* Maximized for portrait mobile space utilization */
+    height: calc(var(--vh, 1vh) * 75) !important;
+    height: 75dvh !important;
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -176,11 +176,11 @@ body {
   }
 
   .chart-container {
-    height: 50vh !important; /* Increased from 30vh for better usability */
+    height: 75vh !important; /* Maximized to better utilize screen space */
     height: calc(
-      var(--vh, 1vh) * 50
+      var(--vh, 1vh) * 75
     ) !important; /* Use custom property for consistent height */
-    height: 50dvh !important; /* Better balance between content and x-axis visibility */
+    height: 75dvh !important; /* Better balance between content and x-axis visibility */
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
@@ -212,9 +212,9 @@ body {
   }
 
   .chart-container {
-    height: 60vh !important; /* Increased for landscape mode - more space available */
-    height: calc(var(--vh, 1vh) * 60) !important;
-    height: 60dvh !important;
+    height: 75vh !important; /* Increased for landscape mode - utilize more space */
+    height: calc(var(--vh, 1vh) * 75) !important;
+    height: 75dvh !important;
   }
 }
 
@@ -243,9 +243,9 @@ body {
   }
 
   .chart-container {
-    height: 60vh !important; /* Increased for landscape mode - more space available */
-    height: calc(var(--vh, 1vh) * 60) !important;
-    height: 60dvh !important;
+    height: 75vh !important; /* Increased for landscape mode - utilize more space */
+    height: calc(var(--vh, 1vh) * 75) !important;
+    height: 75dvh !important;
   }
 }
 
@@ -273,7 +273,7 @@ body.landscape-mode .location-title {
 }
 
 body.landscape-mode .chart-container {
-  height: 60vh !important; /* Increased for landscape mode - more space available */
-  height: calc(var(--vh, 1vh) * 60) !important;
-  height: 60dvh !important;
+  height: 75vh !important; /* Increased for landscape mode - utilize more space */
+  height: calc(var(--vh, 1vh) * 75) !important;
+  height: 75dvh !important;
 }
