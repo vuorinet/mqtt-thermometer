@@ -29,12 +29,36 @@
         const vh = window.innerHeight * 0.01;
         document.documentElement.style.setProperty('--vh', `${vh}px`);
     }
+    
+    // Function to detect and apply landscape mode
+    function applyLandscapeMode() {
+        const isLandscape = window.innerWidth > window.innerHeight;
+        const isMobileDevice = window.matchMedia("(max-width: 1080px)").matches;
+        
+        console.log(`Orientation check: width=${window.innerWidth}, height=${window.innerHeight}, isLandscape=${isLandscape}, isMobile=${isMobileDevice}`);
+        
+        if (isLandscape && isMobileDevice) {
+            document.body.classList.add('landscape-mode');
+            console.log('Applied landscape-mode class');
+        } else {
+            document.body.classList.remove('landscape-mode');
+            console.log('Removed landscape-mode class');
+        }
+    }
 
     setViewportHeight();
-    window.addEventListener('resize', setViewportHeight);
-    window.addEventListener('orientationchange', setViewportHeight);
-
-    // Determine if we're on mobile
+    applyLandscapeMode();
+    
+    window.addEventListener('resize', function() {
+        setViewportHeight();
+        applyLandscapeMode();
+    });
+    window.addEventListener('orientationchange', function() {
+        setTimeout(function() {
+            setViewportHeight();
+            applyLandscapeMode();
+        }, 100); // Small delay to ensure orientation change is complete
+    });    // Determine if we're on mobile
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
 
     // Adjust chart defaults for mobile
@@ -218,7 +242,7 @@
                     padding: {
                         top: isMobile ? 0 : 8,
                         right: isMobile ? 25 : 80, // Minimal padding to maximize chart area usage
-                        bottom: isMobile ? 15 : 8, // Add bottom padding for x-axis labels on mobile
+                        bottom: isMobile ? 35 : 8, // Significant bottom padding for x-axis labels on mobile
                         left: isMobile ? 0 : 8
                     }
                 }

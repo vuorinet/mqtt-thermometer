@@ -83,8 +83,58 @@ body {
   white-space: nowrap; /* Prevent wrapping */
 }
 
-/* Mobile-specific styles */
+/* Mobile-specific styles - Portrait orientation */
+@media (max-width: 1080px) and (orientation: portrait) {
+  div,
+  span,
+  p {
+    padding: 0 !important; /* Remove all padding for maximum space utilization */
+  }
 
+  body {
+    font-size: 12px !important; /* Reduced from 14px to 12px */
+    transform-origin: top left;
+    height: 100vh; /* Fallback */
+    height: calc(var(--vh, 1vh) * 100); /* Use custom property */
+    height: 100dvh; /* Preferred */
+    padding: 2px 0 0 0 !important; /* Minimal top padding */
+  }
+
+  .heading-container {
+    padding: 5px 0 5px 0 !important; /* Minimal padding for mobile */
+  }
+
+  .main-title {
+    font-size: 20px !important; /* Smaller font for mobile */
+    margin: 0 0 2px 0 !important; /* Reduced margins */
+  }
+
+  .location-title {
+    font-size: 16px !important; /* Smaller font for mobile */
+    margin: 0 !important;
+  }
+
+  .legendlabel {
+    font-size: 14px !important;
+    padding-top: 3px !important;
+  }
+
+  .legendcolorbox {
+    width: 25px !important;
+    height: 12px !important;
+  }
+
+  .chart-container {
+    height: 25vh !important; /* Very conservative for portrait mode */
+    height: calc(var(--vh, 1vh) * 25) !important;
+    height: 25dvh !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+}
+
+/* Mobile-specific styles - General (fallback) */
 @media (max-width: 1080px) {
   div,
   span,
@@ -126,13 +176,104 @@ body {
   }
 
   .chart-container {
-    height: 40vh !important; /* Fallback for older browsers */
+    height: 30vh !important; /* Fallback for older browsers */
     height: calc(
-      var(--vh, 1vh) * 40
+      var(--vh, 1vh) * 30
     ) !important; /* Use custom property for consistent height */
-    height: 40dvh !important; /* Conservative height to ensure x-axis is always visible */
+    height: 30dvh !important; /* Very conservative to ensure x-axis is always visible */
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
   }
+}
+
+/* Landscape/horizontal layout styles - MUST BE LAST to override mobile styles */
+@media (orientation: landscape) and (max-width: 1080px) {
+  .heading-container {
+    padding: 5px 0 3px 0 !important; /* Minimal padding for landscape */
+    display: flex !important; /* Override any previous display settings */
+    flex-direction: row !important; /* Force horizontal layout */
+    align-items: baseline !important;
+    justify-content: center !important;
+    gap: 15px !important; /* Space between title and location */
+  }
+
+  .main-title {
+    font-size: 20px !important;
+    margin: 0 !important;
+    display: inline !important; /* Ensure inline display */
+  }
+
+  .location-title {
+    font-size: 16px !important;
+    margin: 0 !important;
+    color: #aaaaaa !important; /* Slightly dimmer for landscape */
+    display: inline !important; /* Ensure inline display */
+  }
+
+  .chart-container {
+    height: 50vh !important; /* More space available in landscape */
+    height: calc(var(--vh, 1vh) * 50) !important;
+    height: 50dvh !important;
+  }
+}
+
+/* Alternative landscape detection using aspect ratio - for Android compatibility */
+@media (max-width: 1080px) and (min-aspect-ratio: 4/3) {
+  .heading-container {
+    padding: 5px 0 3px 0 !important; /* Minimal padding for landscape */
+    display: flex !important; /* Override any previous display settings */
+    flex-direction: row !important; /* Force horizontal layout */
+    align-items: baseline !important;
+    justify-content: center !important;
+    gap: 15px !important; /* Space between title and location */
+  }
+
+  .main-title {
+    font-size: 20px !important;
+    margin: 0 !important;
+    display: inline !important; /* Ensure inline display */
+  }
+
+  .location-title {
+    font-size: 16px !important;
+    margin: 0 !important;
+    color: #aaaaaa !important; /* Slightly dimmer for landscape */
+    display: inline !important; /* Ensure inline display */
+  }
+
+  .chart-container {
+    height: 50vh !important; /* More space available in landscape */
+    height: calc(var(--vh, 1vh) * 50) !important;
+    height: 50dvh !important;
+  }
+}
+
+/* JavaScript-based landscape detection - most reliable for Android */
+body.landscape-mode .heading-container {
+  padding: 5px 0 3px 0 !important; /* Minimal padding for landscape */
+  display: flex !important; /* Override any previous display settings */
+  flex-direction: row !important; /* Force horizontal layout */
+  align-items: baseline !important;
+  justify-content: center !important;
+  gap: 15px !important; /* Space between title and location */
+}
+
+body.landscape-mode .main-title {
+  font-size: 20px !important;
+  margin: 0 !important;
+  display: inline !important; /* Ensure inline display */
+}
+
+body.landscape-mode .location-title {
+  font-size: 16px !important;
+  margin: 0 !important;
+  color: #aaaaaa !important; /* Slightly dimmer for landscape */
+  display: inline !important; /* Ensure inline display */
+}
+
+body.landscape-mode .chart-container {
+  height: 50vh !important; /* More space available in landscape */
+  height: calc(var(--vh, 1vh) * 50) !important;
+  height: 50dvh !important;
 }
