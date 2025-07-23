@@ -112,15 +112,40 @@ jobs:
 
       - name: Verify deployment
         run: |
-          # Wait for container to start
-          sleep 10
-
-          # Check if container is running
           cd /srv/mqtt-thermometer
-          docker compose ps | grep mqtt-thermometer
 
-          # Health check
-          curl -f http://localhost:8000/temperatures || exit 1
+          # Wait for container to reach healthy status (up to 2 minutes)
+          echo "Waiting for container to become healthy..."
+          for i in {1..24}; do
+            health_status=$(docker compose ps --format "table {{.Name}}\t{{.Status}}" | grep mqtt-thermometer | awk '{print $NF}' | tr -d '()')
+            if [[ "$health_status" == "healthy" ]]; then
+              echo "Container is healthy!"
+              break
+            elif [ $i -eq 24 ]; then
+              echo "Timeout: Container did not become healthy within 2 minutes"
+              echo "Current status: $health_status"
+              docker compose ps
+              docker compose logs mqtt-thermometer
+              exit 1
+            else
+              echo "Attempt $i/24: Container status is '$health_status', waiting..."
+              sleep 5
+            fi
+          done
+
+          # Additional validation: verify the service responds correctly
+          echo "Testing service endpoint..."
+          if curl -f --max-time 10 http://localhost:8000/temperatures > /dev/null 2>&1; then
+            echo "Service endpoint is responding correctly"
+          else
+            echo "Service endpoint failed to respond"
+            docker compose ps
+            docker compose logs mqtt-thermometer
+            exit 1
+          fi
+
+          # Show final status
+          docker compose ps
 
   deploy-cottage:
     name: Deploy to Raspberry Pi Cottage
@@ -165,12 +190,37 @@ jobs:
 
       - name: Verify deployment
         run: |
-          # Wait for container to start
-          sleep 10
-
-          # Check if container is running
           cd /srv/mqtt-thermometer
-          docker compose ps | grep mqtt-thermometer
 
-          # Health check
-          curl -f http://localhost:8000/temperatures || exit 1
+          # Wait for container to reach healthy status (up to 2 minutes)
+          echo "Waiting for container to become healthy..."
+          for i in {1..24}; do
+            health_status=$(docker compose ps --format "table {{.Name}}\t{{.Status}}" | grep mqtt-thermometer | awk '{print $NF}' | tr -d '()')
+            if [[ "$health_status" == "healthy" ]]; then
+              echo "Container is healthy!"
+              break
+            elif [ $i -eq 24 ]; then
+              echo "Timeout: Container did not become healthy within 2 minutes"
+              echo "Current status: $health_status"
+              docker compose ps
+              docker compose logs mqtt-thermometer
+              exit 1
+            else
+              echo "Attempt $i/24: Container status is '$health_status', waiting..."
+              sleep 5
+            fi
+          done
+
+          # Additional validation: verify the service responds correctly
+          echo "Testing service endpoint..."
+          if curl -f --max-time 10 http://localhost:8000/temperatures > /dev/null 2>&1; then
+            echo "Service endpoint is responding correctly"
+          else
+            echo "Service endpoint failed to respond"
+            docker compose ps
+            docker compose logs mqtt-thermometer
+            exit 1
+          fi
+
+          # Show final status
+          docker compose ps

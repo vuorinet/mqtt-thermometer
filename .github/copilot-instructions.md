@@ -163,7 +163,11 @@ uv run pytest                       # Run tests
 3. **CD Stage**: Self-hosted Pi runners download and deploy in parallel
 4. **Configuration**: Each Pi uses location-specific TOML config
 5. **Service Management**: Docker Compose handles container lifecycle
-6. **Health Checks**: Verify deployment success via HTTP endpoints
+6. **Health Checks**: Robust deployment verification with:
+   - Wait up to 2 minutes for container health status to become "healthy"
+   - Additional endpoint validation with timeout handling
+   - Detailed logging on failures for debugging
+   - Proper error handling during the start period
 
 ## Environment Variables (Docker)
 
