@@ -143,7 +143,47 @@ def _get_temperature_data_for_source(
             ):
                 # Use the already calibrated temperature from legend_data
                 latest_temp = legend.temperature
-                # Apply the same smoothing logic
+
+                # Find the last non-None temperature in the existing data to check for gaps
+                last_db_time = None
+                last_db_temp = None
+                timestamps = list(temperature_data.keys())
+                for i in range(len(timestamps) - 1, -1, -1):
+                    if temperature_data[timestamps[i]] is not None:
+                        last_db_time = timestamps[i]
+                        last_db_temp = temperature_data[timestamps[i]]
+                        break
+
+                # Apply interpolation if there's a gap between last database reading and current time
+                if (
+                    last_db_time is not None
+                    and last_db_temp is not None
+                    and current_time > last_db_time
+                ):
+                    # Calculate the gap in minutes
+                    gap_minutes = int(
+                        (current_time - last_db_time).total_seconds() / 60
+                    )
+
+                    # Only interpolate if gap is reasonable (up to MAX_GAP_MINUTES)
+                    if gap_minutes <= MAX_GAP_MINUTES and gap_minutes > 1:
+                        # Fill in the gap with interpolated values
+                        for minute_offset in range(1, gap_minutes):
+                            interpolation_time = last_db_time + timedelta(
+                                minutes=minute_offset
+                            )
+                            if interpolation_time in temperature_data:
+                                # Linear interpolation
+                                progress = Decimal(minute_offset) / Decimal(gap_minutes)
+                                interpolated_value = (
+                                    last_db_temp
+                                    + (latest_temp - last_db_temp) * progress
+                                )
+                                temperature_data[interpolation_time] = (
+                                    interpolated_value
+                                )
+
+                # Apply the same smoothing logic to the latest temperature
                 if last_temperature is not None:
                     MAX_STEP = Decimal("0.5")
                     if latest_temp - last_temperature > MAX_STEP:
