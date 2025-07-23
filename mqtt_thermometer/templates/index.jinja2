@@ -42,20 +42,32 @@
                         beginAtZero: true,
                         position: 'right',
                         ticks: {
-                            stepSize: 1, // Reduced from 5 to 1 for better visibility of small changes
+                            stepSize: 1, // Force tick marks every 1°C
                             callback: function (value, index, values) {
-                                return value + ' °C';
+                                // Only show labels for values divisible by 5
+                                if (value % 5 === 0) {
+                                    return value + ' °C';
+                                }
+                                return ''; // Return empty string for other values to hide the label
                             },
                             color: 'rgba(255, 255, 255, 1)',
-                            maxTicksLimit: undefined
+                            maxTicksLimit: undefined,
+                            // Force Chart.js to generate ticks at every degree
+                            autoSkip: false
                         },
                         grid: {
                             color: function (context) {
-                                if (context.tick.value % 5 === 0) {
-                                    return 'rgba(255, 255, 255, 1)'; // Major grid lines every 5°C
+                                if (context.tick.value % 10 === 0) {
+                                    return 'rgba(255, 255, 255, 1)'; // Major grid lines every 10°C (white)
+                                } else if (context.tick.value % 5 === 0) {
+                                    return 'rgba(128, 128, 128, 0.8)'; // Minor grid lines every 5°C (grey)
                                 }
-                                return 'rgba(255, 255, 255, 0.3)'; // Minor grid lines every 1°C
-                            }
+                                return 'rgba(0, 0, 0, 0)'; // Transparent - hide 1°C grid lines in chart area
+                            },
+                            // Show tick marks on the axis itself (right side)
+                            drawTicks: true,
+                            tickColor: 'rgba(255, 255, 255, 0.8)', // White color for all tick marks
+                            tickLength: 4 // Small tick marks for 1°C intervals
                         }
                     },
                     x: {
