@@ -192,6 +192,7 @@ async def get_temperatures(request: Request):  # noqa: ARG001
 
         # Add the very latest temperature reading from legend_data if available
         # This shows the most recent individual reading even before it's saved to database
+        # Note: legend_data already contains calibrated temperatures from process_mqtt_queue
         current_time = datetime.now(tz=UTC).replace(second=0, microsecond=0)
         for legend_source, legend in legend_data.items():
             # Find matching source by comparing with source labels
@@ -201,10 +202,8 @@ async def get_temperatures(request: Request):  # noqa: ARG001
                     and settings_source.label == legend_source
                     and legend.temperature is not None
                 ):
-                    # Apply the same calibration as used for database values
-                    latest_temp = (
-                        legend.temperature * calibration_multiplier + calibration_offset
-                    )
+                    # Use the already calibrated temperature from legend_data
+                    latest_temp = legend.temperature
                     # Apply the same smoothing logic
                     if last_temperature is not None:
                         MAX_STEP = Decimal("0.5")
