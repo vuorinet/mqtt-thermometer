@@ -19,11 +19,21 @@
 <div id="legends"></div>
 
 <div class="chart-container" hx-trigger="load, every 60s" hx-get="temperatures" hx-swap="none" hx-ext="Chartjs"
-    style="position: relative; height: 75vh; height: 75dvh; width: 100vw; padding: 0; margin: 0;">
+    style="position: relative; height: 75vh; height: calc(var(--vh, 1vh) * 75); height: 75dvh; width: 100vw; padding: 0; margin: 0;">
     <canvas id="chart"></canvas>
 </div>
 
 <script>
+    // Set CSS custom property for dynamic viewport height
+    function setViewportHeight() {
+        const vh = window.innerHeight * 0.01;
+        document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
+    setViewportHeight();
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', setViewportHeight);
+
     // Determine if we're on mobile
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
 
@@ -208,7 +218,7 @@
                     padding: {
                         top: isMobile ? 0 : 8,
                         right: isMobile ? 25 : 80, // Minimal padding to maximize chart area usage
-                        bottom: isMobile ? 0 : 8,
+                        bottom: isMobile ? 15 : 8, // Add bottom padding for x-axis labels on mobile
                         left: isMobile ? 0 : 8
                     }
                 }
@@ -217,13 +227,32 @@
         }
     );
 
-    // Handle screen orientation changes
+    // Handle screen orientation changes and viewport height changes
     window.addEventListener('resize', function () {
         const newIsMobile = window.matchMedia("(max-width: 767px)").matches;
         if (newIsMobile !== isMobile) {
             location.reload();
         }
     });
+
+    // Handle viewport height changes (e.g., pull-to-refresh, address bar hiding)
+    let resizeTimeout;
+    window.addEventListener('resize', function () {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(function () {
+            chart.resize();
+        }, 150);
+    });
+
+    // Also handle visual viewport changes on mobile
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', function () {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(function () {
+                chart.resize();
+            }, 150);
+        });
+    }
 
     // WebSocket connection for real-time updates
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';

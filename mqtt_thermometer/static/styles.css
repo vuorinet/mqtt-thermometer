@@ -3,10 +3,14 @@ body {
   margin: 0;
   padding: 0; /* Remove padding for better mobile utilization */
   height: 100vh; /* Fallback for older browsers */
+  height: calc(
+    var(--vh, 1vh) * 100
+  ); /* Use custom property for consistent height */
   height: 100dvh; /* Use dynamic viewport height for better mobile compatibility */
   width: 100%;
   overflow-x: hidden;
   overflow-y: hidden; /* Prevent scrolling */
+  overscroll-behavior: none; /* Prevent pull-to-refresh and overscroll effects */
   box-sizing: border-box;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
     Arial, sans-serif;
@@ -91,8 +95,10 @@ body {
   body {
     font-size: 12px !important; /* Reduced from 14px to 12px */
     transform-origin: top left;
-    height: auto;
-    padding: 5px 0 0 0 !important; /* Add small top padding for legends, no horizontal padding */
+    height: 100vh; /* Fallback */
+    height: calc(var(--vh, 1vh) * 100); /* Use custom property */
+    height: 100dvh; /* Preferred */
+    padding: 2px 0 0 0 !important; /* Minimal top padding */
   }
 
   .heading-container {
@@ -120,8 +126,11 @@ body {
   }
 
   .chart-container {
-    height: 55vh !important; /* Fallback for older browsers */
-    height: 55dvh !important; /* Further reduced and using dvh for better mobile compatibility */
+    height: 40vh !important; /* Fallback for older browsers */
+    height: calc(
+      var(--vh, 1vh) * 40
+    ) !important; /* Use custom property for consistent height */
+    height: 40dvh !important; /* Conservative height to ensure x-axis is always visible */
     width: 100% !important;
     padding: 0 !important;
     margin: 0 !important;
