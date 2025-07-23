@@ -23,9 +23,51 @@
     <meta name="apple-mobile-web-app-title" content="{{ application_name }}">
     <meta name="theme-color" content="#ffffff">
 
-    <link rel="stylesheet" href="/static/styles.css">
+    <!-- Prevent caching for CSS during development -->
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+
+    <!-- Cache-busted CSS with version parameter -->
+    <link rel="stylesheet" href="/static/styles.css?v={{ version }}{{ timestamp if timestamp else '' }}">
 
     {% block head %}{% endblock %}
+
+    <script>
+        // Force reload CSS if cached version detected
+        document.addEventListener('DOMContentLoaded', function () {
+            // Check if landscape mode styles are properly loaded
+            setTimeout(function () {
+                const testDiv = document.createElement('div');
+                testDiv.className = 'heading-container';
+                testDiv.style.position = 'absolute';
+                testDiv.style.top = '-9999px';
+                document.body.appendChild(testDiv);
+
+                const isLandscape = window.innerWidth > window.innerHeight;
+                const isMobile = window.matchMedia("(max-width: 1080px)").matches;
+
+                if (isLandscape && isMobile) {
+                    // Add landscape class and check if styles apply
+                    document.body.classList.add('landscape-mode');
+                    const computedStyle = window.getComputedStyle(testDiv);
+
+                    // If flex display isn't applied, CSS might be cached
+                    if (computedStyle.display !== 'flex') {
+                        console.log('CSS cache detected, forcing reload...');
+                        // Force reload by appending random timestamp
+                        const links = document.querySelectorAll('link[rel="stylesheet"]');
+                        links.forEach(link => {
+                            const href = link.href.split('?')[0];
+                            link.href = href + '?v={{ version }}&t=' + Date.now();
+                        });
+                    }
+                }
+
+                document.body.removeChild(testDiv);
+            }, 100);
+        });
+    </script>
 
     <script>
         // PWA update handling

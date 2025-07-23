@@ -360,7 +360,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 
 # Add version for cache busting
-APP_VERSION = "1.0.0"  # Increment this on each deployment
+APP_VERSION = "1.0.1"  # Increment this on each deployment
 
 
 @app.websocket("/ws")
@@ -413,6 +413,7 @@ async def websocket_endpoint(websocket: WebSocket):
 async def root_page(request: Request):
     return {
         "version": APP_VERSION,
+        "timestamp": int(datetime.now().timestamp()),  # Cache busting
         "application_name": settings.application_name,
         "location": settings.location,
     }
@@ -522,6 +523,18 @@ async def manifest(request: Request):
         content=content,
         media_type="application/manifest+json",
     )
+
+
+@app.get("/static/styles.css")
+async def get_styles_css():
+    """Serve CSS with no-cache headers to prevent mobile browser caching issues"""
+    css_file = Path(__file__).parent / "static" / "styles.css"
+    response = FileResponse(css_file, media_type="text/css")
+    # Add aggressive cache-busting headers
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 app.mount(
