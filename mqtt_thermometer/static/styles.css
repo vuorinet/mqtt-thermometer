@@ -83,6 +83,16 @@ body {
   white-space: nowrap; /* Prevent wrapping */
 }
 
+/* Desktop chart container - default size with visible x-axis */
+.chart-container {
+  height: 60vh; /* Optimal x-axis visibility on desktop */
+  max-height: 600px; /* Prevent chart from growing too tall on wide screens */
+  width: 100%;
+  padding: 0;
+  margin: 0 0 20px 0; /* Added bottom margin for x-axis labels */
+  box-sizing: border-box;
+}
+
 /* Mobile-specific styles - Portrait orientation */
 @media (max-width: 1080px) and (orientation: portrait) {
   div,

@@ -140,6 +140,71 @@
                     });
             });
         }
+
+        // Auto-refresh when app becomes visible (handles Android background/foreground)
+        function setupVisibilityRefresh() {
+            let wasHidden = false;
+            
+            // Track when page becomes hidden
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    wasHidden = true;
+                    console.log('App went to background');
+                } else if (wasHidden) {
+                    console.log('App returned to foreground - refreshing data');
+                    // Small delay to ensure app is fully active
+                    setTimeout(() => {
+                        refreshData();
+                    }, 100);
+                }
+            });
+
+            // Also refresh on window focus (for desktop/browser usage)
+            let wasFocused = true;
+            window.addEventListener('focus', () => {
+                if (!wasFocused) {
+                    console.log('Window regained focus - refreshing data');
+                    setTimeout(() => {
+                        refreshData();
+                    }, 100);
+                }
+                wasFocused = true;
+            });
+
+            window.addEventListener('blur', () => {
+                wasFocused = false;
+            });
+
+            // Simple network connectivity monitor
+            window.addEventListener('online', () => {
+                console.log('Network connection restored - refreshing data');
+                refreshData();
+            });
+        }
+
+        // Refresh data without reloading the page
+        function refreshData() {
+            // Trigger htmx data refresh for chart container if it exists
+            const chartContainer = document.querySelector('[hx-get="temperatures"]');
+            if (chartContainer && window.htmx) {
+                console.log('Triggering htmx data refresh');
+                window.htmx.trigger(chartContainer, 'load');
+                return; // htmx will handle both chart and legends update
+            }
+            
+            // If no htmx container found, fall back to page reload
+            console.log('No htmx containers found, falling back to page reload');
+            window.location.reload();
+        }
+
+        // Make refreshData globally available
+        window.refreshData = refreshData;        // Initialize visibility refresh
+        setupVisibilityRefresh();
+
+        // Refresh the app (used by update notifications and manual refresh)
+        function refreshApp() {
+            refreshData();
+        }
     </script>
 
 </head>

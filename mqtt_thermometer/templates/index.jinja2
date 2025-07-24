@@ -24,6 +24,58 @@
 </div>
 
 <script>
+    // Pull-to-refresh for mobile devices
+    let pullToRefreshEnabled = false;
+    let startY = 0;
+    let currentY = 0;
+    let pullThreshold = 80;
+
+    function initPullToRefresh() {
+        if (window.matchMedia("(max-width: 1080px)").matches) {
+            pullToRefreshEnabled = true;
+
+            document.addEventListener('touchstart', function (e) {
+                if (window.scrollY === 0) {
+                    startY = e.touches[0].pageY;
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchmove', function (e) {
+                if (window.scrollY === 0 && startY > 0) {
+                    currentY = e.touches[0].pageY;
+                    const pullDistance = currentY - startY;
+
+                    if (pullDistance > 0 && pullDistance < pullThreshold * 2) {
+                        // Visual feedback could be added here
+                        e.preventDefault();
+                    }
+                }
+            }, { passive: false });
+
+            document.addEventListener('touchend', function (e) {
+                if (startY > 0) {
+                    const pullDistance = currentY - startY;
+                    if (pullDistance > pullThreshold) {
+                        // Trigger data refresh instead of page reload
+                        if (window.refreshData) {
+                            window.refreshData();
+                        } else {
+                            // Fallback to htmx trigger if refreshData not available
+                            const chartContainer = document.querySelector('[hx-get="temperatures"]');
+                            if (chartContainer && window.htmx) {
+                                window.htmx.trigger(chartContainer, 'load');
+                            } else {
+                                window.location.reload();
+                            }
+                        }
+                    }
+                    startY = 0;
+                    currentY = 0;
+                }
+            }, { passive: true });
+        }
+    }
+
     // Set CSS custom property for dynamic viewport height
     function setViewportHeight() {
         const vh = window.innerHeight * 0.01;
@@ -44,6 +96,7 @@
 
     setViewportHeight();
     applyLandscapeMode();
+    initPullToRefresh();
 
     window.addEventListener('resize', function () {
         setViewportHeight();
@@ -209,7 +262,9 @@
                                     return 'rgba(255, 255, 255, 0.5)';
                                 }
                                 return 'rgba(255, 255, 255, 0.2)';
-                            }
+                            },
+                            drawBorder: true,
+                            offset: false
                         }
                     }
                 },
@@ -238,7 +293,7 @@
                     padding: {
                         top: isMobile ? 0 : 8,
                         right: isMobile ? 25 : 80, // Minimal padding to maximize chart area usage
-                        bottom: isMobile ? 25 : 8, // Reduced bottom padding since we have more chart height
+                        bottom: isMobile ? 25 : 40, // Increased bottom padding for desktop x-axis visibility
                         left: isMobile ? 0 : 8
                     }
                 }
@@ -321,7 +376,12 @@
     ws.onclose = function (event) {
         console.log('WebSocket disconnected, attempting to reconnect...');
         setTimeout(() => {
-            location.reload(); // Reload page to reconnect
+            // Try to refresh data first, fall back to page reload if needed
+            if (window.refreshData) {
+                window.refreshData();
+            } else {
+                location.reload(); // Fallback for reconnection
+            }
         }, 1000);
     };
 

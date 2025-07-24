@@ -1,5 +1,5 @@
 // Version identifier - increase this number on each deployment
-const CACHE_VERSION = 1;
+const CACHE_VERSION = 3;
 const CACHE_NAME = `mqtt-thermometer-v${CACHE_VERSION}`;
 
 // Assets to cache
@@ -48,33 +48,36 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Fetch event - serve from cache, fall back to network
+// Fetch event - network first for everything, cache only as offline fallback
 self.addEventListener('fetch', event => {
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then(response => {
-        // Return cached response if found
-        if (response) {
-          return response;
-        }
-        
-        // Otherwise fetch from network
-        return fetch(event.request).then(response => {
-          // Don't cache non-successful responses
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
-          
-          // Clone the response
+        // Network request succeeded - cache the response and return it
+        if (response && response.status === 200) {
           const responseToCache = response.clone();
-          
-          // Add to cache for future requests
           caches.open(CACHE_NAME).then(cache => {
             cache.put(event.request, responseToCache);
           });
-          
-          return response;
-        });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Network failed - serve from cache only if truly offline
+        return caches.match(event.request)
+          .then(cachedResponse => {
+            if (cachedResponse) {
+              return cachedResponse;
+            }
+            // No cache available - return offline message for navigation requests
+            if (event.request.mode === 'navigate') {
+              return new Response('App is offline. Please check your connection.', {
+                status: 503,
+                headers: { 'Content-Type': 'text/plain' }
+              });
+            }
+            throw new Error('Network failed and no cache available');
+          });
       })
   );
 });
