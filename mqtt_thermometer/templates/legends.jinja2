@@ -1,6 +1,6 @@
 <div id="legends">
     <div id="legendcontainer">
-        {% for legend_data in legend_data.values() if legend_data.temperature != None %}
+        {% for legend_data in legend_data.values() | selectattr('temperature', '!=', None) | sort(attribute='temperature') %}
         <div class="legenditem">
             <div class="legendcolorbox" style="
                     background-color: {{legend_data.background_color}};
