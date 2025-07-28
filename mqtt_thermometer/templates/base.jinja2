@@ -144,17 +144,31 @@
         // Auto-refresh when app becomes visible (handles Android background/foreground)
         function setupVisibilityRefresh() {
             let wasHidden = false;
-            
+
             // Track when page becomes hidden
             document.addEventListener('visibilitychange', () => {
                 if (document.hidden) {
                     wasHidden = true;
                     console.log('App went to background');
                 } else if (wasHidden) {
-                    console.log('App returned to foreground - refreshing data');
+                    console.log('App returned to foreground - refreshing data and checking connections');
                     // Small delay to ensure app is fully active
                     setTimeout(() => {
+                        // First ensure WebSocket is connected (legends may be stale)
+                        if (window.ensureWebSocketConnected) {
+                            window.ensureWebSocketConnected();
+                        }
+                        // Then refresh chart data
                         refreshData();
+
+                        // Fallback: if legends still show old data after 5 seconds, reload page
+                        setTimeout(() => {
+                            const legendsContainer = document.getElementById('legends');
+                            if (legendsContainer && legendsContainer.innerHTML.trim() === '') {
+                                console.warn('Legends appear empty after 5 seconds, falling back to page reload');
+                                window.location.reload();
+                            }
+                        }, 5000);
                     }, 100);
                 }
             });
@@ -184,14 +198,19 @@
 
         // Refresh data without reloading the page
         function refreshData() {
+            // Ensure WebSocket is connected for legends updates
+            if (window.ensureWebSocketConnected) {
+                window.ensureWebSocketConnected();
+            }
+
             // Trigger htmx data refresh for chart container if it exists
             const chartContainer = document.querySelector('[hx-get="temperatures"]');
             if (chartContainer && window.htmx) {
                 console.log('Triggering htmx data refresh');
                 window.htmx.trigger(chartContainer, 'load');
-                return; // htmx will handle both chart and legends update
+                return; // htmx will handle chart update, WebSocket handles legends
             }
-            
+
             // If no htmx container found, fall back to page reload
             console.log('No htmx containers found, falling back to page reload');
             window.location.reload();

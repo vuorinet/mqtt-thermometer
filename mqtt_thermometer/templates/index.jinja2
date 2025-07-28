@@ -329,61 +329,124 @@
         });
     }
 
-    // WebSocket connection for real-time updates
-    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
+    // WebSocket connection for real-time updates with auto-reconnection
+    let ws = null;
+    let wsReconnectAttempts = 0;
+    let wsMaxReconnectAttempts = 5;
+    let wsReconnectInterval = 1000; // Start with 1 second
+    let wsReconnectTimer = null;
 
-    ws.onmessage = function (event) {
+    function connectWebSocket() {
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+
         try {
-            const data = JSON.parse(event.data);
+            ws = new WebSocket(`${wsProtocol}//${window.location.host}/ws`);
 
-            if (data.type === 'legends') {
-                // Update only legends
-                console.log('Websocket: Legends-only update received');
-                document.getElementById('legends').innerHTML = data.legends;
-            } else if (data.type === 'combined') {
-                // Update both legends and chart
-                console.log('Websocket: Combined legends + chart update received');
-                document.getElementById('legends').innerHTML = data.legends;
+            ws.onopen = function (event) {
+                console.log('WebSocket connected');
+                wsReconnectAttempts = 0;
+                wsReconnectInterval = 1000; // Reset interval
+                // Note: Server automatically sends initial combined data on connection
+            };
 
-                // Convert chart data format for Chart.js
-                const convertedChartData = {
-                    datasets: data.chart.datasets.map(dataset => ({
-                        ...dataset,
-                        data: Object.entries(dataset.data).map(([timestamp, value]) => ({
-                            x: timestamp,
-                            y: value
-                        }))
-                    }))
-                };
+            ws.onmessage = function (event) {
+                try {
+                    const data = JSON.parse(event.data);
 
-                chart.data = convertedChartData;
-                chart.update('none'); // Update without animation for real-time feel
-                chart.resize(); // Force redraw to ensure visibility
-                console.log('Chart updated with new data, datasets:', convertedChartData.datasets.length);
-            }
+                    if (data.type === 'legends') {
+                        // Update only legends
+                        console.log('Websocket: Legends-only update received');
+                        document.getElementById('legends').innerHTML = data.legends;
+                    } else if (data.type === 'combined') {
+                        // Update both legends and chart
+                        console.log('Websocket: Combined legends + chart update received');
+                        document.getElementById('legends').innerHTML = data.legends;
+
+                        // Convert chart data format for Chart.js
+                        const convertedChartData = {
+                            datasets: data.chart.datasets.map(dataset => ({
+                                ...dataset,
+                                data: Object.entries(dataset.data).map(([timestamp, value]) => ({
+                                    x: timestamp,
+                                    y: value
+                                }))
+                            }))
+                        };
+
+                        chart.data = convertedChartData;
+                        chart.update('none'); // Update without animation for real-time feel
+                        chart.resize(); // Force redraw to ensure visibility
+                        console.log('Chart updated with new data, datasets:', convertedChartData.datasets.length);
+                    }
+                } catch (error) {
+                    console.log('Non-JSON websocket message received, treating as legacy legends update');
+                    // Fallback for legacy legend-only updates
+                    document.getElementById('legends').innerHTML = event.data;
+                }
+            };
+
+            ws.onclose = function (event) {
+                console.log('WebSocket disconnected');
+                ws = null;
+                scheduleReconnect();
+            };
+
+            ws.onerror = function (error) {
+                console.error('WebSocket error:', error);
+                ws = null;
+                scheduleReconnect();
+            };
+
         } catch (error) {
-            console.log('Non-JSON websocket message received, treating as legacy legends update');
-            // Fallback for legacy legend-only updates
-            document.getElementById('legends').innerHTML = event.data;
+            console.error('Failed to create WebSocket:', error);
+            scheduleReconnect();
         }
-    };
+    }
 
-    ws.onopen = function (event) {
-        console.log('WebSocket connected');
-    };
+    function scheduleReconnect() {
+        if (wsReconnectTimer) {
+            clearTimeout(wsReconnectTimer);
+        }
 
-    ws.onclose = function (event) {
-        console.log('WebSocket disconnected, attempting to reconnect...');
-        setTimeout(() => {
-            // Try to refresh data first, fall back to page reload if needed
-            if (window.refreshData) {
-                window.refreshData();
-            } else {
-                location.reload(); // Fallback for reconnection
-            }
-        }, 1000);
-    };
+        if (wsReconnectAttempts < wsMaxReconnectAttempts) {
+            wsReconnectAttempts++;
+            console.log(`Scheduling WebSocket reconnect attempt ${wsReconnectAttempts} in ${wsReconnectInterval}ms`);
+
+            wsReconnectTimer = setTimeout(() => {
+                console.log(`Attempting WebSocket reconnect ${wsReconnectAttempts}/${wsMaxReconnectAttempts}`);
+                connectWebSocket();
+            }, wsReconnectInterval);
+
+            // Exponential backoff: double the interval up to 30 seconds
+            wsReconnectInterval = Math.min(wsReconnectInterval * 2, 30000);
+        } else {
+            console.warn('WebSocket max reconnection attempts reached. Will retry on app focus.');
+        }
+    }
+
+    function ensureWebSocketConnected() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            console.log('WebSocket not connected, attempting to reconnect...');
+            wsReconnectAttempts = 0; // Reset attempts when manually triggered
+            wsReconnectInterval = 1000; // Reset interval
+            connectWebSocket();
+        } else {
+            console.log('WebSocket already connected');
+        }
+    }
+
+    // Make WebSocket functions globally available
+    window.ensureWebSocketConnected = ensureWebSocketConnected;
+
+    // Initialize WebSocket connection
+    connectWebSocket();
+
+    // Periodic WebSocket health check (every 30 seconds)
+    setInterval(() => {
+        if (!document.hidden) { // Only check when app is visible
+            ensureWebSocketConnected();
+        }
+    }, 30000);
 
     htmx.defineExtension('Chartjs', {
         transformResponse: function (text, xhr, elt) {
