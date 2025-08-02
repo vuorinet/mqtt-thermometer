@@ -32,7 +32,7 @@ border_color = "#dd0000"
 background_color = "#ff0000"
 
 [[sources]]
-label = "Sauna"
+label = "Mancave"
 source = "koti/sauna/temperature"
 border_color = "#dddd00"
 background_color = "#ffff00"
