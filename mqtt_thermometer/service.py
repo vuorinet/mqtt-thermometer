@@ -184,16 +184,20 @@ def _get_temperature_data_for_source(
                                 )
 
                 # Apply the same smoothing logic to the latest temperature
-                if last_temperature is not None:
+                # Use last_db_temp (actual last DB value) instead of last_temperature
+                # to avoid cumulative smoothing errors that could cause persistent offsets
+                smoothing_reference = (
+                    last_db_temp if last_db_temp is not None else last_temperature
+                )
+                if smoothing_reference is not None:
                     MAX_STEP = Decimal("0.5")
-                    if latest_temp - last_temperature > MAX_STEP:
-                        latest_temp = last_temperature + MAX_STEP
-                    elif latest_temp - last_temperature < -MAX_STEP:
-                        latest_temp = last_temperature - MAX_STEP
+                    if latest_temp - smoothing_reference > MAX_STEP:
+                        latest_temp = smoothing_reference + MAX_STEP
+                    elif latest_temp - smoothing_reference < -MAX_STEP:
+                        latest_temp = smoothing_reference - MAX_STEP
 
                 # Always update the current minute with the latest value
                 temperature_data[current_time] = latest_temp
-                last_temperature = latest_temp  # Update for next iteration
                 break
 
     # Convert to JSON-serializable format if requested
