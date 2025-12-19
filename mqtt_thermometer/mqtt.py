@@ -43,7 +43,7 @@ def on_message(client, userdata, message):
 
     for source, temperatures in source_temperatures.items():
         average_temperature = Decimal(sum(temperatures) / len(temperatures)).quantize(
-            Decimal("0.11")
+            Decimal("0.01")
         )
         logger.debug(
             "Saving temperature: %s %s %s",
